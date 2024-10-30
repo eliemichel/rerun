@@ -23,6 +23,10 @@
 /// Number of decimals shown for all float display methods.
 pub const DEFAULT_DISPLAY_DECIMALS: usize = 3;
 
+// TODO: let's take the decision that descriptor overrides happen at the AsComponents layers.
+// Always. In all languages.
+// TODO: we will need to document this decision, everywhere.
+
 /// Describes the interface for interpreting an object as a bundle of [`Component`]s.
 ///
 /// ## Custom bundles
@@ -53,6 +57,7 @@ pub trait AsComponents {
 
     // ---
 
+    // TODO: this one I really want to get rid of but so many tests depend on this shit
     /// Serializes all non-null [`Component`]s of this bundle into Arrow arrays.
     ///
     /// The default implementation will simply serialize the result of [`Self::as_component_batches`]
@@ -66,7 +71,6 @@ pub trait AsComponents {
             .into_iter()
             .map(|comp_batch| {
                 comp_batch
-                    .as_ref()
                     .to_arrow()
                     .map(|array| {
                         let field = arrow2::datatypes::Field::new(
@@ -76,7 +80,7 @@ pub trait AsComponents {
                         );
                         (field, array)
                     })
-                    .with_context(comp_batch.as_ref().name())
+                    .with_context(comp_batch.name())
             })
             .collect()
     }
@@ -85,7 +89,7 @@ pub trait AsComponents {
 impl<C: Component> AsComponents for C {
     #[inline]
     fn as_component_batches(&self) -> Vec<MaybeOwnedComponentBatch<'_>> {
-        vec![(self as &dyn ComponentBatch).into()]
+        vec![MaybeOwnedComponentBatch::new(self as &dyn ComponentBatch)]
     }
 }
 
@@ -128,6 +132,7 @@ impl AsComponents for Vec<&dyn ComponentBatch> {
 mod archetype;
 mod arrow_buffer;
 mod arrow_string;
+mod component_descriptor;
 mod loggable;
 mod loggable_batch;
 pub mod reflection;
@@ -138,13 +143,14 @@ mod view;
 
 pub use self::{
     archetype::{
-        Archetype, ArchetypeName, ArchetypeReflectionMarker, GenericIndicatorComponent,
-        NamedIndicatorComponent,
+        Archetype, ArchetypeFieldName, ArchetypeName, ArchetypeReflectionMarker,
+        GenericIndicatorComponent, NamedIndicatorComponent,
     },
     arrow_buffer::ArrowBuffer,
     arrow_string::ArrowString,
+    component_descriptor::ComponentDescriptor,
     loggable::{Component, ComponentName, ComponentNameSet, DatatypeName, Loggable},
-    loggable_batch::{ComponentBatch, LoggableBatch, MaybeOwnedComponentBatch},
+    loggable_batch::{ComponentBatch, ComponentBatchCow, LoggableBatch, MaybeOwnedComponentBatch},
     result::{
         DeserializationError, DeserializationResult, ResultExt, SerializationError,
         SerializationResult, _Backtrace,

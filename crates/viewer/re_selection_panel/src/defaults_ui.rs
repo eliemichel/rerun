@@ -6,6 +6,7 @@ use re_chunk::{Chunk, RowId};
 use re_chunk_store::LatestAtQuery;
 use re_data_ui::{sorted_component_list_for_ui, DataUi as _};
 use re_log_types::EntityPath;
+use re_types::ComponentDescriptor;
 use re_types_core::ComponentName;
 use re_ui::{list_item::LabelContent, UiExt as _};
 use re_viewer_context::{
@@ -304,7 +305,7 @@ fn add_popup_ui(
                 .with_row(
                     RowId::new(),
                     ctx.blueprint_timepoint_for_writes(),
-                    [(component_name, initial_data)],
+                    [(ComponentDescriptor::new(component_name), initial_data)],
                 )
                 .build()
             {

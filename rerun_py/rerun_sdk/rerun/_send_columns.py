@@ -5,7 +5,7 @@ from typing import Iterable, Protocol, TypeVar, Union
 import pyarrow as pa
 import rerun_bindings as bindings
 
-from ._baseclasses import Archetype, ComponentBatchMixin, ComponentColumn
+from ._baseclasses import Archetype, ComponentBatchMixin, ComponentColumn, ComponentDescriptor
 from ._log import IndicatorComponentBatch
 from .error_utils import catch_and_log_exceptions
 from .recording_stream import RecordingStream
@@ -216,7 +216,7 @@ def send_columns(
 
     indicators = []
 
-    components_args = {}
+    components_args: dict[ComponentDescriptor, pa.Array] = {}
     for c in components:
         if isinstance(c, IndicatorComponentBatch):
             indicators.append(c)

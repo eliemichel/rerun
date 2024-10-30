@@ -1,4 +1,8 @@
-use crate::{result::_Backtrace, DeserializationResult, SerializationResult, SizeBytes};
+use std::borrow::Cow;
+
+use crate::{
+    result::_Backtrace, ComponentDescriptor, DeserializationResult, SerializationResult, SizeBytes,
+};
 
 #[allow(unused_imports)] // used in docstrings
 use crate::{Archetype, ComponentBatch, LoggableBatch};
@@ -83,8 +87,33 @@ pub trait Loggable: 'static + Send + Sync + Clone + Sized + SizeBytes {
 /// Implementing the [`Component`] trait automatically derives the [`ComponentBatch`] implementation,
 /// which makes it possible to work with lists' worth of data in a generic fashion.
 pub trait Component: Loggable {
+    // TODO: document why we want the descriptor to live at the component level (do we, though?) ->
+    // while they dont need archetype{_field}_name as such, who knows what we'll want to add in
+    // there in the future...
+    // ComponentName is a trap anyway: indexing/querying anything by ComponentName is just asking
+    // for UB, so screw it.
+    //
+    /// Returns the complete [`ComponentDescriptor`] for this [`Component`].
+    ///
+    /// Every component is uniquely identified by its [`ComponentDescriptor`].
+    fn descriptor() -> ComponentDescriptor;
+
+    // TODO: the main reason we keep this here and everywhere else is convenience, but then again
+    // the only reason we need that convenience is because we still have a bunch of shit that is
+    // indexed by component names.
+    //
     /// The fully-qualified name of this component, e.g. `rerun.components.Position2D`.
-    fn name() -> ComponentName;
+    ///
+    /// This is a trivial but useful helper for `Self::descriptor().component_name`.
+    ///
+    /// The default implementation already does the right thing. Do not override unless you know
+    /// what you're doing.
+    /// `Self::name()` must exactly match the value returned by `Self::descriptor().component_name`,
+    /// or undefined behavior ensues.
+    #[inline]
+    fn name() -> ComponentName {
+        Self::descriptor().component_name
+    }
 }
 
 // ---
@@ -95,6 +124,22 @@ re_string_interner::declare_new_type!(
     /// The fully-qualified name of a [`Component`], e.g. `rerun.components.Position2D`.
     pub struct ComponentName;
 );
+
+// TODO: to facilitate our lives during migration to full descriptors.
+impl From<ComponentName> for Cow<'static, ComponentDescriptor> {
+    #[inline]
+    fn from(name: ComponentName) -> Self {
+        Cow::Owned(ComponentDescriptor::new(name))
+    }
+}
+
+// TODO: to facilitate our lives during migration to full descriptors.
+impl From<&ComponentName> for Cow<'static, ComponentDescriptor> {
+    #[inline]
+    fn from(name: &ComponentName) -> Self {
+        Cow::Owned(ComponentDescriptor::new(*name))
+    }
+}
 
 impl ComponentName {
     /// Returns the fully-qualified name, e.g. `rerun.components.Position2D`.

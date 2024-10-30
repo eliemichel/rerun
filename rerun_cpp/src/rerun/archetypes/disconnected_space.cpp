@@ -17,13 +17,18 @@ namespace rerun {
         cells.reserve(2);
 
         {
-            auto result = ComponentBatch::from_loggable(archetype.disconnected_space);
+            auto result = ComponentBatch::from_loggable(
+                archetype.disconnected_space,
+                "rerun.archetypes.DisconnectedSpace",
+                "disconnected_space"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         {
             auto indicator = DisconnectedSpace::IndicatorComponent();
-            auto result = ComponentBatch::from_loggable(indicator);
+            auto result =
+                ComponentBatch::from_loggable(indicator, "rerun.archetypes.DisconnectedSpace");
             RR_RETURN_NOT_OK(result.error);
             cells.emplace_back(std::move(result.value));
         }

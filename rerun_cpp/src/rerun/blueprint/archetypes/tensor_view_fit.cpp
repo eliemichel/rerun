@@ -18,13 +18,20 @@ namespace rerun {
         cells.reserve(2);
 
         if (archetype.scaling.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.scaling.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.scaling.value(),
+                "rerun.blueprint.archetypes.TensorViewFit",
+                "scaling"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         {
             auto indicator = TensorViewFit::IndicatorComponent();
-            auto result = ComponentBatch::from_loggable(indicator);
+            auto result = ComponentBatch::from_loggable(
+                indicator,
+                "rerun.blueprint.archetypes.TensorViewFit"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.emplace_back(std::move(result.value));
         }

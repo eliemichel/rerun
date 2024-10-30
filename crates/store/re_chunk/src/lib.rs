@@ -24,7 +24,7 @@ mod batcher;
 mod arrow;
 
 pub use self::builder::{ChunkBuilder, TimeColumnBuilder};
-pub use self::chunk::{Chunk, ChunkError, ChunkResult, TimeColumn};
+pub use self::chunk::{Chunk, ChunkComponents, ChunkError, ChunkResult, TimeColumn};
 pub use self::helpers::{ChunkShared, UnitChunkShared};
 pub use self::id::{ChunkId, RowId};
 pub use self::iter::{ChunkComponentIter, ChunkComponentIterItem, ChunkIndicesIter};

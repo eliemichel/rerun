@@ -17,38 +17,62 @@ namespace rerun {
         cells.reserve(7);
 
         {
-            auto result = ComponentBatch::from_loggable(archetype.strips);
+            auto result = ComponentBatch::from_loggable(
+                archetype.strips,
+                "rerun.archetypes.LineStrips3D",
+                "strips"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.radii.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.radii.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.radii.value(),
+                "rerun.archetypes.LineStrips3D",
+                "radii"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.colors.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.colors.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.colors.value(),
+                "rerun.archetypes.LineStrips3D",
+                "colors"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.labels.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.labels.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.labels.value(),
+                "rerun.archetypes.LineStrips3D",
+                "labels"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.show_labels.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.show_labels.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.show_labels.value(),
+                "rerun.archetypes.LineStrips3D",
+                "show_labels"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.class_ids.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.class_ids.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.class_ids.value(),
+                "rerun.archetypes.LineStrips3D",
+                "class_ids"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         {
             auto indicator = LineStrips3D::IndicatorComponent();
-            auto result = ComponentBatch::from_loggable(indicator);
+            auto result = ComponentBatch::from_loggable(indicator, "rerun.archetypes.LineStrips3D");
             RR_RETURN_NOT_OK(result.error);
             cells.emplace_back(std::move(result.value));
         }

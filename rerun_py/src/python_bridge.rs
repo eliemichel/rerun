@@ -1140,6 +1140,8 @@ fn log_arrow_msg(
 ///     A dictionary mapping timeline names to their values.
 /// components: `Dict[str, ArrowListArray<i32>]`
 ///     A dictionary mapping component names to their values.
+//
+// TODO: who calls this exactly?
 #[pyfunction]
 #[pyo3(signature = (
     entity_path,

@@ -286,9 +286,14 @@ fn preview_if_image_ui(
         .component_mono::<components::ImageFormat>()?
         .ok()?;
 
-    let kind = if component_map.contains_key(&archetypes::DepthImage::indicator().name()) {
+    // TODO: it's ugly AF but indicators are going away next anyway.
+    let kind = if component_map.contains_key(&re_types_core::ComponentBatch::name(
+        &archetypes::DepthImage::indicator(),
+    )) {
         ImageKind::Depth
-    } else if component_map.contains_key(&archetypes::SegmentationImage::indicator().name()) {
+    } else if component_map.contains_key(&re_types_core::ComponentBatch::name(
+        &archetypes::SegmentationImage::indicator(),
+    )) {
         ImageKind::Segmentation
     } else {
         ImageKind::Color

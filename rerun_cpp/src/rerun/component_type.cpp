@@ -7,7 +7,10 @@
 namespace rerun {
     Result<ComponentTypeHandle> ComponentType::register_component() const {
         rr_component_type type;
-        type.name = detail::to_rr_string(name);
+        // TODO: is this fine? do i need to manually check for nulls or smth?
+        type.descriptor.archetype_name = detail::to_rr_string(archetype_name);
+        type.descriptor.archetype_field_name = detail::to_rr_string(archetype_field_name);
+        type.descriptor.component_name = detail::to_rr_string(component_name);
         ARROW_RETURN_NOT_OK(arrow::ExportType(*arrow_datatype, &type.schema));
 
         rr_error error = {};

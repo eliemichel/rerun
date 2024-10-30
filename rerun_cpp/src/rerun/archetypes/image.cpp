@@ -17,28 +17,38 @@ namespace rerun {
         cells.reserve(5);
 
         {
-            auto result = ComponentBatch::from_loggable(archetype.buffer);
+            auto result =
+                ComponentBatch::from_loggable(archetype.buffer, "rerun.archetypes.Image", "buffer");
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         {
-            auto result = ComponentBatch::from_loggable(archetype.format);
+            auto result =
+                ComponentBatch::from_loggable(archetype.format, "rerun.archetypes.Image", "format");
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.opacity.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.opacity.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.opacity.value(),
+                "rerun.archetypes.Image",
+                "opacity"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.draw_order.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.draw_order.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.draw_order.value(),
+                "rerun.archetypes.Image",
+                "draw_order"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         {
             auto indicator = Image::IndicatorComponent();
-            auto result = ComponentBatch::from_loggable(indicator);
+            auto result = ComponentBatch::from_loggable(indicator, "rerun.archetypes.Image");
             RR_RETURN_NOT_OK(result.error);
             cells.emplace_back(std::move(result.value));
         }

@@ -2,6 +2,7 @@
 
 #include <memory> // shared_ptr
 #include <optional>
+#include <string_view>
 
 #include "collection.hpp"
 #include "component_type.hpp"
@@ -31,7 +32,11 @@ namespace rerun {
         ///
         /// Automatically registers the component type the first time this type is encountered.
         template <typename T>
-        static Result<ComponentBatch> from_loggable(const rerun::Collection<T>& components) {
+        static Result<ComponentBatch> from_loggable(
+            const rerun::Collection<T>& components,
+            const std::string_view archetype_name = std::string_view(),
+            const std::string_view archetype_field_name = std::string_view()
+        ) {
             static_assert(
                 rerun::is_loggable<T>,
                 "The given type does not implement the rerun::Loggable trait."
@@ -39,7 +44,12 @@ namespace rerun {
 
             // Register type, only done once per type (but error check happens every time).
             static const Result<ComponentTypeHandle> component_type =
-                ComponentType(Loggable<T>::Name, Loggable<T>::arrow_datatype())
+                ComponentType(
+                    archetype_name,
+                    archetype_field_name,
+                    Loggable<T>::Name,
+                    Loggable<T>::arrow_datatype()
+                )
                     .register_component();
             RR_RETURN_NOT_OK(component_type.error);
 
@@ -57,10 +67,13 @@ namespace rerun {
         ///
         /// Automatically registers the component type the first time this type is encountered.
         template <typename T>
-        static Result<ComponentBatch> from_loggable(const T& component) {
+        static Result<ComponentBatch> from_loggable(
+            const T& component, const std::string_view archetype_name = std::string_view(),
+            const std::string_view archetype_field_name = std::string_view()
+        ) {
             // Collection adapter will automatically borrow for single elements, but let's do this explicitly, avoiding the extra hoop.
             const auto collection = Collection<T>::borrow(&component, 1);
-            return from_loggable(collection);
+            return from_loggable(collection, archetype_name, archetype_field_name);
         }
 
         /// Creates a new data cell from a single optional component instance.
@@ -69,11 +82,15 @@ namespace rerun {
         ///
         /// Automatically registers the component type the first time this type is encountered.
         template <typename T>
-        static Result<ComponentBatch> from_loggable(const std::optional<T>& component) {
+        static Result<ComponentBatch> from_loggable(
+            const std::optional<T>& component,
+            const std::string_view archetype_name = std::string_view(),
+            const std::string_view archetype_field_name = std::string_view()
+        ) {
             if (component.has_value()) {
-                return from_loggable(component.value());
+                return from_loggable(component.value(), archetype_name, archetype_field_name);
             } else {
-                return from_loggable(Collection<T>());
+                return from_loggable(Collection<T>(), archetype_name, archetype_field_name);
             }
         }
 
@@ -84,12 +101,14 @@ namespace rerun {
         /// Automatically registers the component type the first time this type is encountered.
         template <typename T>
         static Result<ComponentBatch> from_loggable(
-            const std::optional<rerun::Collection<T>>& components
+            const std::optional<rerun::Collection<T>>& components,
+            const std::string_view archetype_name = std::string_view(),
+            const std::string_view archetype_field_name = std::string_view()
         ) {
             if (components.has_value()) {
-                return from_loggable(components.value());
+                return from_loggable(components.value(), archetype_name, archetype_field_name);
             } else {
-                return from_loggable(Collection<T>());
+                return from_loggable(Collection<T>(), archetype_name, archetype_field_name);
             }
         }
 

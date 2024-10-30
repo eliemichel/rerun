@@ -18,28 +18,47 @@ namespace rerun {
         cells.reserve(5);
 
         {
-            auto result = ComponentBatch::from_loggable(archetype.class_identifier);
+            auto result = ComponentBatch::from_loggable(
+                archetype.class_identifier,
+                "rerun.blueprint.archetypes.SpaceViewBlueprint",
+                "class_identifier"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.display_name.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.display_name.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.display_name.value(),
+                "rerun.blueprint.archetypes.SpaceViewBlueprint",
+                "display_name"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.space_origin.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.space_origin.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.space_origin.value(),
+                "rerun.blueprint.archetypes.SpaceViewBlueprint",
+                "space_origin"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.visible.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.visible.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.visible.value(),
+                "rerun.blueprint.archetypes.SpaceViewBlueprint",
+                "visible"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         {
             auto indicator = SpaceViewBlueprint::IndicatorComponent();
-            auto result = ComponentBatch::from_loggable(indicator);
+            auto result = ComponentBatch::from_loggable(
+                indicator,
+                "rerun.blueprint.archetypes.SpaceViewBlueprint"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.emplace_back(std::move(result.value));
         }

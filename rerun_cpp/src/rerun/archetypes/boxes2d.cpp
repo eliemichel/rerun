@@ -17,48 +17,80 @@ namespace rerun {
         cells.reserve(9);
 
         {
-            auto result = ComponentBatch::from_loggable(archetype.half_sizes);
+            auto result = ComponentBatch::from_loggable(
+                archetype.half_sizes,
+                "rerun.archetypes.Boxes2D",
+                "half_sizes"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.centers.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.centers.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.centers.value(),
+                "rerun.archetypes.Boxes2D",
+                "centers"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.colors.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.colors.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.colors.value(),
+                "rerun.archetypes.Boxes2D",
+                "colors"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.radii.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.radii.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.radii.value(),
+                "rerun.archetypes.Boxes2D",
+                "radii"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.labels.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.labels.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.labels.value(),
+                "rerun.archetypes.Boxes2D",
+                "labels"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.show_labels.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.show_labels.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.show_labels.value(),
+                "rerun.archetypes.Boxes2D",
+                "show_labels"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.draw_order.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.draw_order.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.draw_order.value(),
+                "rerun.archetypes.Boxes2D",
+                "draw_order"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.class_ids.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.class_ids.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.class_ids.value(),
+                "rerun.archetypes.Boxes2D",
+                "class_ids"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         {
             auto indicator = Boxes2D::IndicatorComponent();
-            auto result = ComponentBatch::from_loggable(indicator);
+            auto result = ComponentBatch::from_loggable(indicator, "rerun.archetypes.Boxes2D");
             RR_RETURN_NOT_OK(result.error);
             cells.emplace_back(std::move(result.value));
         }

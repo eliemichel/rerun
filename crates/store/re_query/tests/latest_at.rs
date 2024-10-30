@@ -561,7 +561,7 @@ fn query_and_compare(
         let cached = caches.latest_at(
             query,
             entity_path,
-            MyPoints::all_components().iter().copied(),
+            MyPoints::all_components().iter(),
         );
 
         let cached_points = cached.component_batch::<MyPoint>().unwrap();

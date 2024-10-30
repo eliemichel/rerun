@@ -17,23 +17,36 @@ namespace rerun {
         cells.reserve(4);
 
         {
-            auto result = ComponentBatch::from_loggable(archetype.line_strings);
+            auto result = ComponentBatch::from_loggable(
+                archetype.line_strings,
+                "rerun.archetypes.GeoLineStrings",
+                "line_strings"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.radii.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.radii.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.radii.value(),
+                "rerun.archetypes.GeoLineStrings",
+                "radii"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.colors.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.colors.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.colors.value(),
+                "rerun.archetypes.GeoLineStrings",
+                "colors"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         {
             auto indicator = GeoLineStrings::IndicatorComponent();
-            auto result = ComponentBatch::from_loggable(indicator);
+            auto result =
+                ComponentBatch::from_loggable(indicator, "rerun.archetypes.GeoLineStrings");
             RR_RETURN_NOT_OK(result.error);
             cells.emplace_back(std::move(result.value));
         }

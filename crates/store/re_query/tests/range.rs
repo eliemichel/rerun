@@ -894,7 +894,7 @@ fn concurrent_multitenant_edge_case() {
         let cached = caches.range(
             &query,
             &entity_path,
-            MyPoints::all_components().iter().copied(),
+            MyPoints::all_components().iter(),
         );
 
         let _cached_all_points = cached.get_required(&MyPoint::name()).unwrap();
@@ -972,7 +972,7 @@ fn concurrent_multitenant_edge_case2() {
         let cached = caches.range(
             &query1,
             &entity_path,
-            MyPoints::all_components().iter().copied(),
+            MyPoints::all_components().iter(),
         );
 
         let _cached_all_points = cached.get_required(&MyPoint::name()).unwrap();
@@ -985,7 +985,7 @@ fn concurrent_multitenant_edge_case2() {
         let cached = caches.range(
             &query2,
             &entity_path,
-            MyPoints::all_components().iter().copied(),
+            MyPoints::all_components().iter(),
         );
 
         let _cached_all_points = cached.get_required(&MyPoint::name()).unwrap();
@@ -1080,7 +1080,7 @@ fn query_and_compare(
         let cached = caches.range(
             query,
             entity_path,
-            MyPoints::all_components().iter().copied(),
+            MyPoints::all_components().iter(),
         );
 
         let all_points_chunks = cached.get_required(&MyPoint::name()).unwrap();

@@ -17,28 +17,44 @@ namespace rerun {
         cells.reserve(5);
 
         {
-            auto result = ComponentBatch::from_loggable(archetype.blob);
+            auto result = ComponentBatch::from_loggable(
+                archetype.blob,
+                "rerun.archetypes.EncodedImage",
+                "blob"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.media_type.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.media_type.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.media_type.value(),
+                "rerun.archetypes.EncodedImage",
+                "media_type"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.opacity.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.opacity.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.opacity.value(),
+                "rerun.archetypes.EncodedImage",
+                "opacity"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.draw_order.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.draw_order.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.draw_order.value(),
+                "rerun.archetypes.EncodedImage",
+                "draw_order"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         {
             auto indicator = EncodedImage::IndicatorComponent();
-            auto result = ComponentBatch::from_loggable(indicator);
+            auto result = ComponentBatch::from_loggable(indicator, "rerun.archetypes.EncodedImage");
             RR_RETURN_NOT_OK(result.error);
             cells.emplace_back(std::move(result.value));
         }

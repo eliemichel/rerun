@@ -18,13 +18,20 @@ namespace rerun {
         cells.reserve(2);
 
         {
-            auto result = ComponentBatch::from_loggable(archetype.provider);
+            auto result = ComponentBatch::from_loggable(
+                archetype.provider,
+                "rerun.blueprint.archetypes.MapBackground",
+                "provider"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         {
             auto indicator = MapBackground::IndicatorComponent();
-            auto result = ComponentBatch::from_loggable(indicator);
+            auto result = ComponentBatch::from_loggable(
+                indicator,
+                "rerun.blueprint.archetypes.MapBackground"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.emplace_back(std::move(result.value));
         }

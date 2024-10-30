@@ -17,18 +17,27 @@ namespace rerun {
         cells.reserve(3);
 
         if (archetype.corner.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.corner.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.corner.value(),
+                "rerun.blueprint.archetypes.PlotLegend",
+                "corner"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.visible.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.visible.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.visible.value(),
+                "rerun.blueprint.archetypes.PlotLegend",
+                "visible"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         {
             auto indicator = PlotLegend::IndicatorComponent();
-            auto result = ComponentBatch::from_loggable(indicator);
+            auto result =
+                ComponentBatch::from_loggable(indicator, "rerun.blueprint.archetypes.PlotLegend");
             RR_RETURN_NOT_OK(result.error);
             cells.emplace_back(std::move(result.value));
         }

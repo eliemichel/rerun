@@ -17,28 +17,44 @@ namespace rerun {
         cells.reserve(5);
 
         if (archetype.color.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.color.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.color.value(),
+                "rerun.archetypes.SeriesLine",
+                "color"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.width.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.width.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.width.value(),
+                "rerun.archetypes.SeriesLine",
+                "width"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.name.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.name.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.name.value(),
+                "rerun.archetypes.SeriesLine",
+                "name"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.aggregation_policy.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.aggregation_policy.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.aggregation_policy.value(),
+                "rerun.archetypes.SeriesLine",
+                "aggregation_policy"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         {
             auto indicator = SeriesLine::IndicatorComponent();
-            auto result = ComponentBatch::from_loggable(indicator);
+            auto result = ComponentBatch::from_loggable(indicator, "rerun.archetypes.SeriesLine");
             RR_RETURN_NOT_OK(result.error);
             cells.emplace_back(std::move(result.value));
         }

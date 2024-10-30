@@ -73,9 +73,7 @@ impl ViewportBlueprint {
         let results = blueprint_engine.cache().latest_at(
             query,
             &VIEWPORT_PATH.into(),
-            blueprint_archetypes::ViewportBlueprint::all_components()
-                .iter()
-                .copied(),
+            blueprint_archetypes::ViewportBlueprint::all_components().iter(),
         );
 
         let blueprint_archetypes::ViewportBlueprint {

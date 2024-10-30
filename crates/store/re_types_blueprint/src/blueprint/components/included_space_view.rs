@@ -13,9 +13,9 @@
 #![allow(clippy::too_many_lines)]
 
 use ::re_types_core::external::arrow2;
-use ::re_types_core::ComponentName;
 use ::re_types_core::SerializationResult;
 use ::re_types_core::{ComponentBatch, MaybeOwnedComponentBatch};
+use ::re_types_core::{ComponentDescriptor, ComponentName};
 use ::re_types_core::{DeserializationError, DeserializationResult};
 
 /// **Component**: The unique id of a space view, used to refer to views in containers.
@@ -23,44 +23,10 @@ use ::re_types_core::{DeserializationError, DeserializationResult};
 #[repr(transparent)]
 pub struct IncludedSpaceView(pub crate::datatypes::Uuid);
 
-impl ::re_types_core::SizeBytes for IncludedSpaceView {
+impl ::re_types_core::Component for IncludedSpaceView {
     #[inline]
-    fn heap_size_bytes(&self) -> u64 {
-        self.0.heap_size_bytes()
-    }
-
-    #[inline]
-    fn is_pod() -> bool {
-        <crate::datatypes::Uuid>::is_pod()
-    }
-}
-
-impl<T: Into<crate::datatypes::Uuid>> From<T> for IncludedSpaceView {
-    fn from(v: T) -> Self {
-        Self(v.into())
-    }
-}
-
-impl std::borrow::Borrow<crate::datatypes::Uuid> for IncludedSpaceView {
-    #[inline]
-    fn borrow(&self) -> &crate::datatypes::Uuid {
-        &self.0
-    }
-}
-
-impl std::ops::Deref for IncludedSpaceView {
-    type Target = crate::datatypes::Uuid;
-
-    #[inline]
-    fn deref(&self) -> &crate::datatypes::Uuid {
-        &self.0
-    }
-}
-
-impl std::ops::DerefMut for IncludedSpaceView {
-    #[inline]
-    fn deref_mut(&mut self) -> &mut crate::datatypes::Uuid {
-        &mut self.0
+    fn descriptor() -> ComponentDescriptor {
+        ComponentDescriptor::new("rerun.blueprint.components.IncludedSpaceView")
     }
 }
 
@@ -105,9 +71,43 @@ impl ::re_types_core::Loggable for IncludedSpaceView {
     }
 }
 
-impl ::re_types_core::Component for IncludedSpaceView {
+impl<T: Into<crate::datatypes::Uuid>> From<T> for IncludedSpaceView {
+    fn from(v: T) -> Self {
+        Self(v.into())
+    }
+}
+
+impl std::borrow::Borrow<crate::datatypes::Uuid> for IncludedSpaceView {
     #[inline]
-    fn name() -> ComponentName {
-        "rerun.blueprint.components.IncludedSpaceView".into()
+    fn borrow(&self) -> &crate::datatypes::Uuid {
+        &self.0
+    }
+}
+
+impl std::ops::Deref for IncludedSpaceView {
+    type Target = crate::datatypes::Uuid;
+
+    #[inline]
+    fn deref(&self) -> &crate::datatypes::Uuid {
+        &self.0
+    }
+}
+
+impl std::ops::DerefMut for IncludedSpaceView {
+    #[inline]
+    fn deref_mut(&mut self) -> &mut crate::datatypes::Uuid {
+        &mut self.0
+    }
+}
+
+impl ::re_types_core::SizeBytes for IncludedSpaceView {
+    #[inline]
+    fn heap_size_bytes(&self) -> u64 {
+        self.0.heap_size_bytes()
+    }
+
+    #[inline]
+    fn is_pod() -> bool {
+        <crate::datatypes::Uuid>::is_pod()
     }
 }

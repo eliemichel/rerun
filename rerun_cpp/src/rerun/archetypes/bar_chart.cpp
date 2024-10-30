@@ -17,18 +17,26 @@ namespace rerun {
         cells.reserve(3);
 
         {
-            auto result = ComponentBatch::from_loggable(archetype.values);
+            auto result = ComponentBatch::from_loggable(
+                archetype.values,
+                "rerun.archetypes.BarChart",
+                "values"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.color.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.color.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.color.value(),
+                "rerun.archetypes.BarChart",
+                "color"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         {
             auto indicator = BarChart::IndicatorComponent();
-            auto result = ComponentBatch::from_loggable(indicator);
+            auto result = ComponentBatch::from_loggable(indicator, "rerun.archetypes.BarChart");
             RR_RETURN_NOT_OK(result.error);
             cells.emplace_back(std::move(result.value));
         }

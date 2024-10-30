@@ -13,9 +13,9 @@ use arrow2::{
 };
 
 use re_log_types::{EntityPath, Timeline};
-use re_types_core::{Component as _, Loggable as _, SizeBytes};
+use re_types_core::{Component as _, ComponentDescriptor, Loggable as _, SizeBytes};
 
-use crate::{Chunk, ChunkError, ChunkId, ChunkResult, RowId, TimeColumn};
+use crate::{chunk::ChunkComponents, Chunk, ChunkError, ChunkId, ChunkResult, RowId, TimeColumn};
 
 // ---
 
@@ -87,6 +87,13 @@ impl TransportChunk {
 
     /// The value used to identify a Rerun data column in field-level [`ArrowSchema`] metadata.
     pub const FIELD_METADATA_VALUE_KIND_DATA: &'static str = "data";
+
+    // TODO
+    pub const FIELD_METADATA_KEY_DESC_ARCHETYPE_NAME: &'static str = "rerun.archetype_name";
+
+    // TODO
+    pub const FIELD_METADATA_KEY_DESC_ARCHETYPE_FIELD_NAME: &'static str =
+        "rerun.archetype_field_name";
 
     /// The marker used to identify whether a column is sorted in field-level [`ArrowSchema`] metadata.
     ///
@@ -192,6 +199,49 @@ impl TransportChunk {
             ), //
         ]
         .into()
+    }
+
+    // TODO
+    #[inline]
+    pub fn field_metadata_component_descriptor(
+        component_desc: &ComponentDescriptor,
+    ) -> ArrowMetadata {
+        component_desc
+            .archetype_name
+            .iter()
+            .copied()
+            .map(|archetype_name| {
+                (
+                    Self::FIELD_METADATA_KEY_DESC_ARCHETYPE_NAME.to_owned(),
+                    archetype_name.to_string(),
+                )
+            })
+            .chain(component_desc.archetype_field_name.iter().copied().map(
+                |archetype_field_name| {
+                    (
+                        Self::FIELD_METADATA_KEY_DESC_ARCHETYPE_FIELD_NAME.to_owned(),
+                        archetype_field_name.to_string(),
+                    )
+                },
+            ))
+            .collect()
+    }
+
+    #[inline]
+    pub fn component_descriptor_from_field(field: &ArrowField) -> ComponentDescriptor {
+        ComponentDescriptor {
+            archetype_name: field
+                .metadata
+                .get(Self::FIELD_METADATA_KEY_DESC_ARCHETYPE_NAME)
+                .cloned()
+                .map(Into::into),
+            component_name: field.name.clone().into(),
+            archetype_field_name: field
+                .metadata
+                .get(Self::FIELD_METADATA_KEY_DESC_ARCHETYPE_FIELD_NAME)
+                .cloned()
+                .map(Into::into),
+        }
     }
 }
 
@@ -383,7 +433,7 @@ impl Chunk {
 
             schema.fields.push(
                 ArrowField::new(
-                    RowId::name().to_string(),
+                    RowId::descriptor().to_string(),
                     row_ids.data_type().clone(),
                     false,
                 )
@@ -426,12 +476,24 @@ impl Chunk {
         {
             re_tracing::profile_scope!("components");
 
-            for (component_name, data) in components {
-                schema.fields.push(
-                    ArrowField::new(component_name.to_string(), data.data_type().clone(), true)
-                        .with_metadata(TransportChunk::field_metadata_data_column()),
-                );
-                columns.push(data.clone().boxed());
+            for (_component_name, per_desc) in components.iter() {
+                for (component_desc, list_array) in per_desc {
+                    schema.fields.push(
+                        ArrowField::new(
+                            component_desc.component_name.to_string(),
+                            list_array.data_type().clone(),
+                            true,
+                        )
+                        .with_metadata({
+                            let mut metadata = TransportChunk::field_metadata_data_column();
+                            metadata.extend(TransportChunk::field_metadata_component_descriptor(
+                                component_desc,
+                            ));
+                            metadata
+                        }),
+                    );
+                    columns.push(list_array.clone().boxed());
+                }
             }
         }
 
@@ -463,7 +525,8 @@ impl Chunk {
             re_tracing::profile_scope!("row ids");
 
             let Some(row_ids) = transport.controls().find_map(|(field, column)| {
-                (field.name == RowId::name().as_str()).then_some(column)
+                // TODO: surely that's not good, wtf is this
+                (field.name == RowId::descriptor().component_name.as_str()).then_some(column)
             }) else {
                 return Err(ChunkError::Malformed {
                     reason: format!("missing row_id column ({:?})", transport.schema),
@@ -552,7 +615,7 @@ impl Chunk {
 
         // Components
         let components = {
-            let mut components = BTreeMap::default();
+            let mut components = ChunkComponents::default();
 
             for (field, column) in transport.components() {
                 let column = column
@@ -565,11 +628,12 @@ impl Chunk {
                         ),
                     })?;
 
+                let component_desc = TransportChunk::component_descriptor_from_field(field);
+
                 if components
-                    .insert(
-                        field.name.clone().into(),
-                        column.clone(), /* refcount */
-                    )
+                    .entry(component_desc.component_name)
+                    .or_default()
+                    .insert(component_desc, column.clone() /* refcount */)
                     .is_some()
                 {
                     return Err(ChunkError::Malformed {
@@ -679,7 +743,7 @@ mod tests {
         let colors4 = None;
 
         let components = [
-            (MyPoint::name(), {
+            (MyPoint::descriptor(), {
                 let list_array = crate::util::arrays_to_list_array_opt(&[
                     Some(&*points1),
                     points2,
@@ -690,7 +754,7 @@ mod tests {
                 assert_eq!(4, list_array.len());
                 list_array
             }),
-            (MyPoint::name(), {
+            (MyPoint::descriptor(), {
                 let list_array = crate::util::arrays_to_list_array_opt(&[
                     Some(&*colors1),
                     Some(&*colors2),

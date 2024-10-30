@@ -17,43 +17,71 @@ namespace rerun {
         cells.reserve(8);
 
         {
-            auto result = ComponentBatch::from_loggable(archetype.buffer);
+            auto result = ComponentBatch::from_loggable(
+                archetype.buffer,
+                "rerun.archetypes.DepthImage",
+                "buffer"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         {
-            auto result = ComponentBatch::from_loggable(archetype.format);
+            auto result = ComponentBatch::from_loggable(
+                archetype.format,
+                "rerun.archetypes.DepthImage",
+                "format"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.meter.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.meter.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.meter.value(),
+                "rerun.archetypes.DepthImage",
+                "meter"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.colormap.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.colormap.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.colormap.value(),
+                "rerun.archetypes.DepthImage",
+                "colormap"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.depth_range.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.depth_range.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.depth_range.value(),
+                "rerun.archetypes.DepthImage",
+                "depth_range"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.point_fill_ratio.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.point_fill_ratio.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.point_fill_ratio.value(),
+                "rerun.archetypes.DepthImage",
+                "point_fill_ratio"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.draw_order.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.draw_order.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.draw_order.value(),
+                "rerun.archetypes.DepthImage",
+                "draw_order"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         {
             auto indicator = DepthImage::IndicatorComponent();
-            auto result = ComponentBatch::from_loggable(indicator);
+            auto result = ComponentBatch::from_loggable(indicator, "rerun.archetypes.DepthImage");
             RR_RETURN_NOT_OK(result.error);
             cells.emplace_back(std::move(result.value));
         }

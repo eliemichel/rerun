@@ -17,18 +17,26 @@ namespace rerun {
         cells.reserve(3);
 
         {
-            auto result = ComponentBatch::from_loggable(archetype.blob);
+            auto result = ComponentBatch::from_loggable(
+                archetype.blob,
+                "rerun.archetypes.AssetVideo",
+                "blob"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.media_type.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.media_type.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.media_type.value(),
+                "rerun.archetypes.AssetVideo",
+                "media_type"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         {
             auto indicator = AssetVideo::IndicatorComponent();
-            auto result = ComponentBatch::from_loggable(indicator);
+            auto result = ComponentBatch::from_loggable(indicator, "rerun.archetypes.AssetVideo");
             RR_RETURN_NOT_OK(result.error);
             cells.emplace_back(std::move(result.value));
         }

@@ -1586,6 +1586,8 @@ fn archetype_serialize(type_ident: &Ident, obj: &Object, hpp_includes: &mut Incl
         quote!(archetypes)
     };
 
+    let archetype_name = &obj.fqname;
+
     let num_fields = quote_integer(obj.fields.len() + 1); // Plus one for the indicator.
     let push_batches = obj.fields.iter().map(|field| {
         let field_name = field_name_identifier(field);
@@ -1596,18 +1598,20 @@ fn archetype_serialize(type_ident: &Ident, obj: &Object, hpp_includes: &mut Incl
             cells.push_back(std::move(result.value));
         };
 
+        let archetype_field_name = field.snake_case_name();
+
         // TODO(andreas): Introducing MonoCollection will remove the need for distinguishing these two cases.
         if field.is_nullable && !obj.attrs.has(ATTR_RERUN_LOG_MISSING_AS_EMPTY) {
             quote! {
                 if (#field_accessor.has_value()) {
-                    auto result = ComponentBatch::from_loggable(#field_accessor.value());
+                    auto result = ComponentBatch::from_loggable(#field_accessor.value(), #archetype_name, #archetype_field_name);
                     #push_back
                 }
             }
         } else {
             quote! {
                 {
-                    auto result = ComponentBatch::from_loggable(#field_accessor);
+                    auto result = ComponentBatch::from_loggable(#field_accessor, #archetype_name, #archetype_field_name);
                     #push_back
                 }
             }
@@ -1632,7 +1636,7 @@ fn archetype_serialize(type_ident: &Ident, obj: &Object, hpp_includes: &mut Incl
             #(#push_batches)*
             {
                 auto indicator = #type_ident::IndicatorComponent();
-                auto result = ComponentBatch::from_loggable(indicator);
+                auto result = ComponentBatch::from_loggable(indicator, #archetype_name);
                 RR_RETURN_NOT_OK(result.error);
                 cells.emplace_back(std::move(result.value));
             }

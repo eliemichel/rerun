@@ -12,16 +12,97 @@ from .error_utils import catch_and_log_exceptions
 T = TypeVar("T")
 
 
+# TODO: docs (copy from rust, probably)
+# TODO: the fact that this thing is nor interned and is recomputed/realloc'd for each
+# log call is pretty shit? then again I guess this is just as true for the arrow datatypes we
+# keep passing around... and the same is true for rust... (i think cpp caches all of this?)
+class ComponentDescriptor:
+    def __init__(
+        self,
+        component_name: str,
+        *,
+        archetype_name: str | None = None,
+        archetype_field_name: str | None = None,
+    ) -> None:
+        self.archetype_name = archetype_name
+        self.archetype_field_name = archetype_field_name
+        self.component_name = component_name
+
+    def __str__(self) -> str:
+        archetype_name = self.archetype_name
+        archetype_field_name = self.archetype_field_name
+        component_name = self.component_name
+
+        if archetype_name is not None and archetype_field_name is None:
+            return f"{archetype_name}:{component_name}"
+        elif archetype_name is None and archetype_field_name is not None:
+            return f"{component_name}#{archetype_field_name}"
+        elif archetype_name is not None and archetype_field_name is not None:
+            return f"{archetype_name}:{component_name}#{archetype_field_name}"
+
+        return component_name
+
+
+# TODO: Protocol are duck typed
 class ComponentBatchLike(Protocol):
     """Describes interface for objects that can be converted to batch of rerun Components."""
 
+    # TODO: uh... this needs to be the complete opposite
+    # def component_name(self) -> str:
+    #     """
+    #     The fully-qualified name of this component batch, e.g. `rerun.components.Position2D`.
+    #
+    #     This is a trivial but useful helper for `self.descriptor().component_name`.
+    #
+    #     The default implementation already does the right thing. Do not override unless you know
+    #     what you're doing.
+    #     `Self::name()` must exactly match the value returned by `self.descriptor().component_name`,
+    #     or undefined behavior ensues.
+    #     """
+    #     return self.component_descriptor().component_name
+    #
+    # def component_descriptor(self) -> ComponentDescriptor:
+    #     """Returns the complete descriptor of the component."""
+    #     ...
+
+    # TODO: in python we probably dont need component_name at all anymore though?
+    # TODO: for the static type checker...
     def component_name(self) -> str:
         """Returns the name of the component."""
         ...
 
+    def component_descriptor(self) -> ComponentDescriptor:
+        """Returns the complete descriptor of the component."""
+        return ComponentDescriptor(self.component_name())
+
     def as_arrow_array(self) -> pa.Array:
         """Returns a `pyarrow.Array` of the component data."""
         ...
+
+
+
+class DescribedComponentBatch(ComponentBatchLike):
+    """A `ComponentBatchLike` object with its associated `ComponentDescriptor`."""
+
+    # TODO: don't do this noob
+    # _descriptor: ComponentDescriptor
+    # _batch: ComponentBatchLike
+
+    def __init__(self, batch: ComponentBatchLike, descriptor: ComponentDescriptor):
+        self._batch = batch
+        self._descriptor = descriptor
+
+    def component_name(self) -> str:
+        """Returns the name of the component."""
+        return self._batch.component_name()
+
+    def component_descriptor(self) -> ComponentDescriptor:
+        """Returns the complete descriptor of the component."""
+        return self._descriptor
+
+    def as_arrow_array(self) -> pa.Array:
+        """Returns a `pyarrow.Array` of the component data."""
+        return self._batch.as_arrow_array()
 
 
 class AsComponents(Protocol):
@@ -43,6 +124,8 @@ class AsComponents(Protocol):
         ...
 
 
+# TODO: same as `Archetype(rr.AsComponents)`
+# TODO: 
 @define
 class Archetype:
     """Base class for all archetypes."""
@@ -107,11 +190,17 @@ class Archetype:
                 # TODO(#3381): Depending on what we decide
                 # to do with optional components, we may need to make this instead call `_empty_pa_array`
                 if comp is not None:
-                    yield comp
+                    descr = ComponentDescriptor(
+                        comp.component_name(),
+                        archetype_name=self.archetype_name(),
+                        archetype_field_name=fld.name,
+                    )
+                    yield DescribedComponentBatch(comp, descr)
 
     __repr__ = __str__
 
 
+# TODO: basically that's the equivalent of Rust's Loggable right now
 class BaseBatch(Generic[T]):
     _ARROW_DATATYPE: pa.DataType | None = None
     """The pyarrow type of this batch."""
@@ -268,6 +357,14 @@ class ComponentColumn:
         """
         return self.component_batch.component_name()
 
+    def component_descriptor(self) -> ComponentDescriptor:
+        """
+        Returns the complete descriptor of the component.
+
+        Part of the `ComponentBatchLike` logging interface.
+        """
+        return self.component_batch.component_descriptor()
+
     def as_arrow_array(self) -> pa.Array:
         """
         The component as an arrow batch.
@@ -279,6 +376,7 @@ class ComponentColumn:
         return pa.ListArray.from_arrays(offsets, array)
 
 
+# TODO: okay what about this? does this need a descriptor?
 class ComponentBatchMixin(ComponentBatchLike):
     def component_name(self) -> str:
         """
@@ -308,6 +406,7 @@ class ComponentBatchMixin(ComponentBatchLike):
         return ComponentColumn(self, lengths)
 
 
+# TODO: okay what about this? does this need a descriptor????????????
 class ComponentMixin(ComponentBatchLike):
     """
     Makes components adhere to the ComponentBatchLike interface.

@@ -17,53 +17,89 @@ namespace rerun {
         cells.reserve(10);
 
         {
-            auto result = ComponentBatch::from_loggable(archetype.vertex_positions);
+            auto result = ComponentBatch::from_loggable(
+                archetype.vertex_positions,
+                "rerun.archetypes.Mesh3D",
+                "vertex_positions"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.triangle_indices.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.triangle_indices.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.triangle_indices.value(),
+                "rerun.archetypes.Mesh3D",
+                "triangle_indices"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.vertex_normals.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.vertex_normals.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.vertex_normals.value(),
+                "rerun.archetypes.Mesh3D",
+                "vertex_normals"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.vertex_colors.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.vertex_colors.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.vertex_colors.value(),
+                "rerun.archetypes.Mesh3D",
+                "vertex_colors"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.vertex_texcoords.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.vertex_texcoords.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.vertex_texcoords.value(),
+                "rerun.archetypes.Mesh3D",
+                "vertex_texcoords"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.albedo_factor.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.albedo_factor.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.albedo_factor.value(),
+                "rerun.archetypes.Mesh3D",
+                "albedo_factor"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.albedo_texture_buffer.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.albedo_texture_buffer.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.albedo_texture_buffer.value(),
+                "rerun.archetypes.Mesh3D",
+                "albedo_texture_buffer"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.albedo_texture_format.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.albedo_texture_format.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.albedo_texture_format.value(),
+                "rerun.archetypes.Mesh3D",
+                "albedo_texture_format"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.class_ids.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.class_ids.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.class_ids.value(),
+                "rerun.archetypes.Mesh3D",
+                "class_ids"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         {
             auto indicator = Mesh3D::IndicatorComponent();
-            auto result = ComponentBatch::from_loggable(indicator);
+            auto result = ComponentBatch::from_loggable(indicator, "rerun.archetypes.Mesh3D");
             RR_RETURN_NOT_OK(result.error);
             cells.emplace_back(std::move(result.value));
         }

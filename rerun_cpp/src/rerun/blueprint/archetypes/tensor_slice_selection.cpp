@@ -18,28 +18,47 @@ namespace rerun {
         cells.reserve(5);
 
         if (archetype.width.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.width.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.width.value(),
+                "rerun.blueprint.archetypes.TensorSliceSelection",
+                "width"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.height.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.height.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.height.value(),
+                "rerun.blueprint.archetypes.TensorSliceSelection",
+                "height"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.indices.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.indices.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.indices.value(),
+                "rerun.blueprint.archetypes.TensorSliceSelection",
+                "indices"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.slider.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.slider.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.slider.value(),
+                "rerun.blueprint.archetypes.TensorSliceSelection",
+                "slider"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         {
             auto indicator = TensorSliceSelection::IndicatorComponent();
-            auto result = ComponentBatch::from_loggable(indicator);
+            auto result = ComponentBatch::from_loggable(
+                indicator,
+                "rerun.blueprint.archetypes.TensorSliceSelection"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.emplace_back(std::move(result.value));
         }

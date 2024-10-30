@@ -615,6 +615,8 @@ impl ChunkStore {
                         time_column
                             .time_range_per_component(chunk.components())
                             .get(&component_name)
+                            // TODO: okay that's _very_ messy.
+                            .and_then(|per_desc| per_desc.values().next())
                             .map_or(false, |time_range| time_range.intersects(query.range()))
                     })
             })

@@ -17,28 +17,44 @@ namespace rerun {
         cells.reserve(5);
 
         {
-            auto result = ComponentBatch::from_loggable(archetype.image_from_camera);
+            auto result = ComponentBatch::from_loggable(
+                archetype.image_from_camera,
+                "rerun.archetypes.Pinhole",
+                "image_from_camera"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.resolution.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.resolution.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.resolution.value(),
+                "rerun.archetypes.Pinhole",
+                "resolution"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.camera_xyz.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.camera_xyz.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.camera_xyz.value(),
+                "rerun.archetypes.Pinhole",
+                "camera_xyz"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.image_plane_distance.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.image_plane_distance.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.image_plane_distance.value(),
+                "rerun.archetypes.Pinhole",
+                "image_plane_distance"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         {
             auto indicator = Pinhole::IndicatorComponent();
-            auto result = ComponentBatch::from_loggable(indicator);
+            auto result = ComponentBatch::from_loggable(indicator, "rerun.archetypes.Pinhole");
             RR_RETURN_NOT_OK(result.error);
             cells.emplace_back(std::move(result.value));
         }

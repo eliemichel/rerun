@@ -13,28 +13,15 @@
 #![allow(clippy::too_many_lines)]
 
 use ::re_types_core::external::arrow2;
-use ::re_types_core::ComponentName;
 use ::re_types_core::SerializationResult;
 use ::re_types_core::{ComponentBatch, MaybeOwnedComponentBatch};
+use ::re_types_core::{ComponentDescriptor, ComponentName};
 use ::re_types_core::{DeserializationError, DeserializationResult};
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct AffixFuzzer21 {
     pub single_half: arrow2::types::f16,
     pub many_halves: ::re_types_core::ArrowBuffer<arrow2::types::f16>,
-}
-
-impl ::re_types_core::SizeBytes for AffixFuzzer21 {
-    #[inline]
-    fn heap_size_bytes(&self) -> u64 {
-        self.single_half.heap_size_bytes() + self.many_halves.heap_size_bytes()
-    }
-
-    #[inline]
-    fn is_pod() -> bool {
-        <arrow2::types::f16>::is_pod()
-            && <::re_types_core::ArrowBuffer<arrow2::types::f16>>::is_pod()
-    }
 }
 
 ::re_types_core::macros::impl_into_cow!(AffixFuzzer21);
@@ -306,5 +293,18 @@ impl ::re_types_core::Loggable for AffixFuzzer21 {
                 .with_context("rerun.testing.datatypes.AffixFuzzer21")?
             }
         })
+    }
+}
+
+impl ::re_types_core::SizeBytes for AffixFuzzer21 {
+    #[inline]
+    fn heap_size_bytes(&self) -> u64 {
+        self.single_half.heap_size_bytes() + self.many_halves.heap_size_bytes()
+    }
+
+    #[inline]
+    fn is_pod() -> bool {
+        <arrow2::types::f16>::is_pod()
+            && <::re_types_core::ArrowBuffer<arrow2::types::f16>>::is_pod()
     }
 }

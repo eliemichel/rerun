@@ -17,13 +17,18 @@ namespace rerun {
         cells.reserve(2);
 
         {
-            auto result = ComponentBatch::from_loggable(archetype.xyz);
+            auto result = ComponentBatch::from_loggable(
+                archetype.xyz,
+                "rerun.archetypes.ViewCoordinates",
+                "xyz"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         {
             auto indicator = ViewCoordinates::IndicatorComponent();
-            auto result = ComponentBatch::from_loggable(indicator);
+            auto result =
+                ComponentBatch::from_loggable(indicator, "rerun.archetypes.ViewCoordinates");
             RR_RETURN_NOT_OK(result.error);
             cells.emplace_back(std::move(result.value));
         }

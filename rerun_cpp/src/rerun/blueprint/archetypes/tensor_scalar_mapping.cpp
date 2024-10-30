@@ -18,23 +18,38 @@ namespace rerun {
         cells.reserve(4);
 
         if (archetype.mag_filter.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.mag_filter.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.mag_filter.value(),
+                "rerun.blueprint.archetypes.TensorScalarMapping",
+                "mag_filter"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.colormap.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.colormap.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.colormap.value(),
+                "rerun.blueprint.archetypes.TensorScalarMapping",
+                "colormap"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.gamma.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.gamma.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.gamma.value(),
+                "rerun.blueprint.archetypes.TensorScalarMapping",
+                "gamma"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         {
             auto indicator = TensorScalarMapping::IndicatorComponent();
-            auto result = ComponentBatch::from_loggable(indicator);
+            auto result = ComponentBatch::from_loggable(
+                indicator,
+                "rerun.blueprint.archetypes.TensorScalarMapping"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.emplace_back(std::move(result.value));
         }

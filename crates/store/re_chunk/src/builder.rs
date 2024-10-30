@@ -1,16 +1,16 @@
 use std::collections::BTreeMap;
 
+use ahash::HashMap;
 use arrow2::{
     array::{Array as ArrowArray, PrimitiveArray as ArrowPrimitiveArray},
     datatypes::DataType as ArrowDatatype,
 };
 use itertools::Itertools;
 
-use nohash_hasher::IntMap;
 use re_log_types::{EntityPath, TimeInt, TimePoint, Timeline};
-use re_types_core::{AsComponents, ComponentBatch, ComponentName};
+use re_types_core::{AsComponents, ComponentBatch, ComponentDescriptor};
 
-use crate::{Chunk, ChunkId, ChunkResult, RowId, TimeColumn};
+use crate::{chunk::ChunkComponents, Chunk, ChunkId, ChunkResult, RowId, TimeColumn};
 
 // ---
 
@@ -23,7 +23,7 @@ pub struct ChunkBuilder {
 
     row_ids: Vec<RowId>,
     timelines: BTreeMap<Timeline, TimeColumnBuilder>,
-    components: BTreeMap<ComponentName, Vec<Option<Box<dyn ArrowArray>>>>,
+    components: BTreeMap<ComponentDescriptor, Vec<Option<Box<dyn ArrowArray>>>>,
 }
 
 impl Chunk {
@@ -63,13 +63,13 @@ impl ChunkBuilder {
         mut self,
         row_id: RowId,
         timepoint: impl Into<TimePoint>,
-        components: impl IntoIterator<Item = (ComponentName, Option<Box<dyn ArrowArray>>)>,
+        components: impl IntoIterator<Item = (ComponentDescriptor, Option<Box<dyn ArrowArray>>)>,
     ) -> Self {
         let components = components.into_iter().collect_vec();
 
         // Align all columns by appending null values for rows where we don't have data.
-        for (component_name, _) in &components {
-            let arrays = self.components.entry(*component_name).or_default();
+        for (component_desc, _) in &components {
+            let arrays = self.components.entry(component_desc.clone()).or_default();
             arrays.extend(
                 std::iter::repeat(None).take(self.row_ids.len().saturating_sub(arrays.len())),
             );
@@ -107,14 +107,14 @@ impl ChunkBuilder {
         self,
         row_id: RowId,
         timepoint: impl Into<TimePoint>,
-        components: impl IntoIterator<Item = (ComponentName, Box<dyn ArrowArray>)>,
+        components: impl IntoIterator<Item = (ComponentDescriptor, Box<dyn ArrowArray>)>,
     ) -> Self {
         self.with_sparse_row(
             row_id,
             timepoint,
             components
                 .into_iter()
-                .map(|(component_name, array)| (component_name, Some(array))),
+                .map(|(component_descr, array)| (component_descr, Some(array))),
         )
     }
 
@@ -130,7 +130,9 @@ impl ChunkBuilder {
         self.with_component_batches(
             row_id,
             timepoint,
-            batches.iter().map(|batch| batch.as_ref()),
+            batches
+                .iter()
+                .map(|batch| batch as &dyn re_types_core::ComponentBatch),
         )
     }
 
@@ -148,7 +150,8 @@ impl ChunkBuilder {
             component_batch
                 .to_arrow()
                 .ok()
-                .map(|array| (component_batch.name(), array)),
+                // TODO: this is very shady, ye?
+                .map(|array| (component_batch.descriptor().into_owned(), array)),
         )
     }
 
@@ -167,7 +170,8 @@ impl ChunkBuilder {
                 component_batch
                     .to_arrow()
                     .ok()
-                    .map(|array| (component_batch.name(), array))
+                    // TODO: this is very shady, ye?
+                    .map(|array| (component_batch.descriptor().into_owned(), array))
             }),
         )
     }
@@ -178,16 +182,18 @@ impl ChunkBuilder {
         self,
         row_id: RowId,
         timepoint: impl Into<TimePoint>,
-        component_batches: impl IntoIterator<Item = (ComponentName, Option<&'a dyn ComponentBatch>)>,
+        component_batches: impl IntoIterator<
+            Item = (ComponentDescriptor, Option<&'a dyn ComponentBatch>),
+        >,
     ) -> Self {
         self.with_sparse_row(
             row_id,
             timepoint,
             component_batches
                 .into_iter()
-                .map(|(component_name, component_batch)| {
+                .map(|(component_desc, component_batch)| {
                     (
-                        component_name,
+                        component_desc,
                         component_batch.and_then(|batch| batch.to_arrow().ok()),
                     )
                 }),
@@ -227,14 +233,19 @@ impl ChunkBuilder {
 
         let components = {
             re_tracing::profile_scope!("components");
-            components
-                .into_iter()
-                .filter_map(|(component_name, arrays)| {
-                    let arrays = arrays.iter().map(|array| array.as_deref()).collect_vec();
-                    crate::util::arrays_to_list_array_opt(&arrays)
-                        .map(|list_array| (component_name, list_array))
-                })
-                .collect()
+            let mut per_name = ChunkComponents::default();
+            for (component_desc, list_array) in
+                components
+                    .into_iter()
+                    .filter_map(|(component_desc, arrays)| {
+                        let arrays = arrays.iter().map(|array| array.as_deref()).collect_vec();
+                        crate::util::arrays_to_list_array_opt(&arrays)
+                            .map(|list_array| (component_desc, list_array))
+                    })
+            {
+                per_name.insert_descriptor(component_desc, list_array);
+            }
+            per_name
         };
 
         Chunk::from_native_row_ids(id, entity_path, None, &row_ids, timelines, components)
@@ -258,7 +269,7 @@ impl ChunkBuilder {
     #[inline]
     pub fn build_with_datatypes(
         self,
-        datatypes: &IntMap<ComponentName, ArrowDatatype>,
+        datatypes: &HashMap<ComponentDescriptor, ArrowDatatype>,
     ) -> ChunkResult<Chunk> {
         let Self {
             id,
@@ -277,22 +288,28 @@ impl ChunkBuilder {
                 .into_iter()
                 .map(|(timeline, time_column)| (timeline, time_column.build()))
                 .collect(),
-            components
-                .into_iter()
-                .filter_map(|(component_name, arrays)| {
-                    let arrays = arrays.iter().map(|array| array.as_deref()).collect_vec();
-
-                    // If we know the datatype in advance, we're able to keep even fully sparse
-                    // columns around.
-                    if let Some(datatype) = datatypes.get(&component_name) {
-                        crate::util::arrays_to_list_array(datatype.clone(), &arrays)
-                            .map(|list_array| (component_name, list_array))
-                    } else {
-                        crate::util::arrays_to_list_array_opt(&arrays)
-                            .map(|list_array| (component_name, list_array))
-                    }
-                })
-                .collect(),
+            {
+                let mut per_name = ChunkComponents::default();
+                for (component_desc, list_array) in
+                    components
+                        .into_iter()
+                        .filter_map(|(component_desc, arrays)| {
+                            let arrays = arrays.iter().map(|array| array.as_deref()).collect_vec();
+                            // If we know the datatype in advance, we're able to keep even fully sparse
+                            // columns around.
+                            if let Some(datatype) = datatypes.get(&component_desc) {
+                                crate::util::arrays_to_list_array(datatype.clone(), &arrays)
+                                    .map(|list_array| (component_desc, list_array))
+                            } else {
+                                crate::util::arrays_to_list_array_opt(&arrays)
+                                    .map(|list_array| (component_desc, list_array))
+                            }
+                        })
+                {
+                    per_name.insert_descriptor(component_desc, list_array);
+                }
+                per_name
+            },
         )
     }
 }

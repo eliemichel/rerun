@@ -18,48 +18,83 @@ namespace rerun {
         cells.reserve(9);
 
         {
-            auto result = ComponentBatch::from_loggable(archetype.container_kind);
+            auto result = ComponentBatch::from_loggable(
+                archetype.container_kind,
+                "rerun.blueprint.archetypes.ContainerBlueprint",
+                "container_kind"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.display_name.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.display_name.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.display_name.value(),
+                "rerun.blueprint.archetypes.ContainerBlueprint",
+                "display_name"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.contents.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.contents.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.contents.value(),
+                "rerun.blueprint.archetypes.ContainerBlueprint",
+                "contents"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.col_shares.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.col_shares.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.col_shares.value(),
+                "rerun.blueprint.archetypes.ContainerBlueprint",
+                "col_shares"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.row_shares.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.row_shares.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.row_shares.value(),
+                "rerun.blueprint.archetypes.ContainerBlueprint",
+                "row_shares"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.active_tab.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.active_tab.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.active_tab.value(),
+                "rerun.blueprint.archetypes.ContainerBlueprint",
+                "active_tab"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.visible.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.visible.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.visible.value(),
+                "rerun.blueprint.archetypes.ContainerBlueprint",
+                "visible"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.grid_columns.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.grid_columns.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.grid_columns.value(),
+                "rerun.blueprint.archetypes.ContainerBlueprint",
+                "grid_columns"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         {
             auto indicator = ContainerBlueprint::IndicatorComponent();
-            auto result = ComponentBatch::from_loggable(indicator);
+            auto result = ComponentBatch::from_loggable(
+                indicator,
+                "rerun.blueprint.archetypes.ContainerBlueprint"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.emplace_back(std::move(result.value));
         }

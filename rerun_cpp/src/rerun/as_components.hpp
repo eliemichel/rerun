@@ -5,6 +5,8 @@
 #include "indicator_component.hpp"
 #include "loggable.hpp"
 
+// TODO: do we need to care about this one? im kinda lost at this point...
+
 namespace rerun {
     /// The AsComponents trait is used to convert a type into a list of serialized component.
     ///

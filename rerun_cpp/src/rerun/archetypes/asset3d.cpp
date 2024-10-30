@@ -17,23 +17,32 @@ namespace rerun {
         cells.reserve(4);
 
         {
-            auto result = ComponentBatch::from_loggable(archetype.blob);
+            auto result =
+                ComponentBatch::from_loggable(archetype.blob, "rerun.archetypes.Asset3D", "blob");
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.media_type.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.media_type.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.media_type.value(),
+                "rerun.archetypes.Asset3D",
+                "media_type"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.albedo_factor.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.albedo_factor.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.albedo_factor.value(),
+                "rerun.archetypes.Asset3D",
+                "albedo_factor"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         {
             auto indicator = Asset3D::IndicatorComponent();
-            auto result = ComponentBatch::from_loggable(indicator);
+            auto result = ComponentBatch::from_loggable(indicator, "rerun.archetypes.Asset3D");
             RR_RETURN_NOT_OK(result.error);
             cells.emplace_back(std::move(result.value));
         }

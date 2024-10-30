@@ -17,53 +17,89 @@ namespace rerun {
         cells.reserve(10);
 
         {
-            auto result = ComponentBatch::from_loggable(archetype.lengths);
+            auto result = ComponentBatch::from_loggable(
+                archetype.lengths,
+                "rerun.archetypes.Capsules3D",
+                "lengths"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         {
-            auto result = ComponentBatch::from_loggable(archetype.radii);
+            auto result = ComponentBatch::from_loggable(
+                archetype.radii,
+                "rerun.archetypes.Capsules3D",
+                "radii"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.translations.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.translations.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.translations.value(),
+                "rerun.archetypes.Capsules3D",
+                "translations"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.rotation_axis_angles.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.rotation_axis_angles.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.rotation_axis_angles.value(),
+                "rerun.archetypes.Capsules3D",
+                "rotation_axis_angles"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.quaternions.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.quaternions.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.quaternions.value(),
+                "rerun.archetypes.Capsules3D",
+                "quaternions"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.colors.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.colors.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.colors.value(),
+                "rerun.archetypes.Capsules3D",
+                "colors"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.labels.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.labels.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.labels.value(),
+                "rerun.archetypes.Capsules3D",
+                "labels"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.show_labels.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.show_labels.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.show_labels.value(),
+                "rerun.archetypes.Capsules3D",
+                "show_labels"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.class_ids.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.class_ids.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.class_ids.value(),
+                "rerun.archetypes.Capsules3D",
+                "class_ids"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         {
             auto indicator = Capsules3D::IndicatorComponent();
-            auto result = ComponentBatch::from_loggable(indicator);
+            auto result = ComponentBatch::from_loggable(indicator, "rerun.archetypes.Capsules3D");
             RR_RETURN_NOT_OK(result.error);
             cells.emplace_back(std::move(result.value));
         }

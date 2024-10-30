@@ -3,6 +3,7 @@ use std::{
     sync::atomic::{AtomicU64, Ordering},
 };
 
+use ahash::HashMap;
 use arrow2::{
     array::{
         Array as ArrowArray, ListArray as ArrowListArray, PrimitiveArray as ArrowPrimitiveArray,
@@ -14,7 +15,8 @@ use arrow2::{
 use itertools::{izip, Itertools};
 use re_log_types::{EntityPath, ResolvedTimeRange, Time, TimeInt, TimePoint, Timeline};
 use re_types_core::{
-    ComponentName, DeserializationError, Loggable, LoggableBatch, SerializationError, SizeBytes,
+    ComponentDescriptor, ComponentName, DeserializationError, Loggable, LoggableBatch,
+    SerializationError, SizeBytes,
 };
 
 use crate::{ChunkId, RowId};
@@ -48,6 +50,111 @@ pub enum ChunkError {
 pub type ChunkResult<T> = Result<T, ChunkError>;
 
 // ---
+
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct ChunkComponents(
+    // TODO(#6576): support non-list based columns?
+    //
+    // TODO(cmc): Here and everywhere there is always two questions: is the ComponentName layer
+    // necessary (as opposed to not having it), and are BTreeMaps the right choice (as opposed to
+    // HashMaps or even IntMaps where possible).
+    // Having a ComponentName layer and using BTreeMaps is the most convenient and powerful way of
+    // doing things, so let's do that for now, until there is any reason not to.
+    pub BTreeMap<ComponentName, BTreeMap<ComponentDescriptor, ArrowListArray<i32>>>,
+);
+
+impl ChunkComponents {
+    /// Like `Self::insert`, but automatically infers the [`ComponentName`] layer.
+    #[inline]
+    pub fn insert_descriptor(
+        &mut self,
+        component_desc: ComponentDescriptor,
+        list_array: ArrowListArray<i32>,
+    ) {
+        self.0
+            .entry(component_desc.component_name)
+            .or_default()
+            .insert(component_desc, list_array);
+    }
+
+    #[inline]
+    pub fn get_descriptor(
+        &self,
+        component_desc: &ComponentDescriptor,
+    ) -> Option<&ArrowListArray<i32>> {
+        self.get(&component_desc.component_name)
+            .and_then(|per_desc| per_desc.get(component_desc))
+    }
+
+    #[inline]
+    pub fn get_descriptor_mut(
+        &mut self,
+        component_desc: &ComponentDescriptor,
+    ) -> Option<&mut ArrowListArray<i32>> {
+        self.get_mut(&component_desc.component_name)
+            .and_then(|per_desc| per_desc.get_mut(component_desc))
+    }
+
+    #[inline]
+    pub fn iter_flattened(
+        &self,
+    ) -> impl Iterator<Item = (&ComponentDescriptor, &ArrowListArray<i32>)> {
+        self.0.values().flatten()
+    }
+
+    #[inline]
+    pub fn into_iter_flattened(
+        self,
+    ) -> impl Iterator<Item = (ComponentDescriptor, ArrowListArray<i32>)> {
+        self.0.into_values().flatten()
+    }
+}
+
+impl std::ops::Deref for ChunkComponents {
+    type Target = BTreeMap<ComponentName, BTreeMap<ComponentDescriptor, ArrowListArray<i32>>>;
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl std::ops::DerefMut for ChunkComponents {
+    #[inline]
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl FromIterator<(ComponentDescriptor, ArrowListArray<i32>)> for ChunkComponents {
+    #[inline]
+    fn from_iter<T: IntoIterator<Item = (ComponentDescriptor, ArrowListArray<i32>)>>(
+        iter: T,
+    ) -> Self {
+        let mut this = Self::default();
+        {
+            for (component_desc, list_array) in iter {
+                this.entry(component_desc.component_name)
+                    .or_default()
+                    .insert(component_desc, list_array);
+            }
+        }
+        this
+    }
+}
+
+// TODO: Now _that_ is disgusting.. but also probably fine for the duration of the interim.
+impl FromIterator<(ComponentName, ArrowListArray<i32>)> for ChunkComponents {
+    #[inline]
+    fn from_iter<T: IntoIterator<Item = (ComponentName, ArrowListArray<i32>)>>(iter: T) -> Self {
+        iter.into_iter()
+            .map(|(component_name, list_array)| {
+                let component_desc = ComponentDescriptor::new(component_name);
+                (component_desc, list_array)
+            })
+            .collect()
+    }
+}
 
 /// Dense arrow-based storage of N rows of multi-component multi-temporal data for a specific entity.
 ///
@@ -88,9 +195,7 @@ pub struct Chunk {
     /// Each `ListArray` must be the same length as `row_ids`.
     ///
     /// Sparse so that we can e.g. log a `Position` at one timestamp but not a `Color`.
-    //
-    // TODO(#6576): support non-list based columns?
-    pub(crate) components: BTreeMap<ComponentName, ArrowListArray<i32>>,
+    pub(crate) components: ChunkComponents,
 }
 
 impl PartialEq for Chunk {
@@ -112,6 +217,21 @@ impl PartialEq for Chunk {
             && *row_ids == other.row_ids
             && *timelines == other.timelines
             && *components == other.components
+    }
+}
+
+// TODO
+impl Chunk {
+    // TODO: note that this cannot exist in a proper descr-based world.
+    // TODO: pattern matched APIs
+    #[inline]
+    pub fn get_first_component(
+        &self,
+        component_name: &ComponentName,
+    ) -> Option<&ArrowListArray<i32>> {
+        self.components
+            .get(component_name)
+            .and_then(|per_desc| per_desc.first_key_value().map(|(_, list_array)| list_array))
     }
 }
 
@@ -190,29 +310,33 @@ impl Chunk {
         );
 
         let components_no_extension: BTreeMap<_, _> = components
-            .iter()
-            .map(|(name, arr)| {
-                let arr = arrow2::array::ListArray::new(
-                    arr.data_type().to_logical_type().clone(),
-                    arr.offsets().clone(),
-                    arr.values().clone(),
-                    arr.validity().cloned(),
-                );
-                (name, arr)
+            .values()
+            .flat_map(|per_desc| {
+                per_desc.iter().map(|(component_descr, list_array)| {
+                    let list_array = arrow2::array::ListArray::new(
+                        list_array.data_type().to_logical_type().clone(),
+                        list_array.offsets().clone(),
+                        list_array.values().clone(),
+                        list_array.validity().cloned(),
+                    );
+                    (component_descr.clone(), list_array)
+                })
             })
             .collect();
 
         let other_components_no_extension: BTreeMap<_, _> = other
             .components
-            .iter()
-            .map(|(name, arr)| {
-                let arr = arrow2::array::ListArray::new(
-                    arr.data_type().to_logical_type().clone(),
-                    arr.offsets().clone(),
-                    arr.values().clone(),
-                    arr.validity().cloned(),
-                );
-                (name, arr)
+            .values()
+            .flat_map(|per_desc| {
+                per_desc.iter().map(|(component_descr, list_array)| {
+                    let list_array = arrow2::array::ListArray::new(
+                        list_array.data_type().to_logical_type().clone(),
+                        list_array.offsets().clone(),
+                        list_array.values().clone(),
+                        list_array.validity().cloned(),
+                    );
+                    (component_descr.clone(), list_array)
+                })
             })
             .collect();
 
@@ -318,7 +442,8 @@ impl Chunk {
     #[inline]
     pub fn time_range_per_component(
         &self,
-    ) -> BTreeMap<Timeline, BTreeMap<ComponentName, ResolvedTimeRange>> {
+    ) -> BTreeMap<Timeline, BTreeMap<ComponentName, HashMap<ComponentDescriptor, ResolvedTimeRange>>>
+    {
         re_tracing::profile_function!();
 
         self.timelines
@@ -342,6 +467,7 @@ impl Chunk {
         // Reminder: component columns are sparse, we must take a look at the validity bitmaps.
         self.components
             .values()
+            .flat_map(|per_desc| per_desc.values())
             .map(|list_array| {
                 list_array.validity().map_or_else(
                     || list_array.len() as u64,
@@ -405,16 +531,19 @@ impl Chunk {
         // Raw, potentially duplicated counts (because timestamps aren't necessarily unique).
         let mut counts_raw = vec![0u64; self.num_rows()];
         {
-            self.components.values().for_each(|list_array| {
-                if let Some(validity) = list_array.validity() {
-                    validity
-                        .iter()
-                        .enumerate()
-                        .for_each(|(i, is_valid)| counts_raw[i] += is_valid as u64);
-                } else {
-                    counts_raw.iter_mut().for_each(|count| *count += 1);
-                }
-            });
+            self.components
+                .values()
+                .flat_map(|per_desc| per_desc.values())
+                .for_each(|list_array| {
+                    if let Some(validity) = list_array.validity() {
+                        validity
+                            .iter()
+                            .enumerate()
+                            .for_each(|(i, is_valid)| counts_raw[i] += is_valid as u64);
+                    } else {
+                        counts_raw.iter_mut().for_each(|count| *count += 1);
+                    }
+                });
         }
 
         let mut counts = Vec::with_capacity(counts_raw.len());
@@ -450,6 +579,7 @@ impl Chunk {
 
         self.components
             .values()
+            .flat_map(|per_desc| per_desc.values())
             .flat_map(move |list_array| {
                 izip!(
                     time_column.times(),
@@ -468,6 +598,7 @@ impl Chunk {
             .collect()
     }
 
+    // TODO: pattern matched API
     /// The number of events in this chunk for the specified component.
     ///
     /// I.e. how many _component batches_ ("cells") were logged in total for this component?
@@ -476,7 +607,7 @@ impl Chunk {
     #[inline]
     pub fn num_events_for_component(&self, component_name: ComponentName) -> Option<u64> {
         // Reminder: component columns are sparse, we must check validity bitmap.
-        self.components.get(&component_name).map(|list_array| {
+        self.get_first_component(&component_name).map(|list_array| {
             list_array.validity().map_or_else(
                 || list_array.len() as u64,
                 |validity| validity.len() as u64 - validity.unset_bits() as u64,
@@ -492,7 +623,9 @@ impl Chunk {
     /// This is crucial for indexing and queries to work properly.
     //
     // TODO(cmc): This needs to be stored in chunk metadata and transported across IPC.
-    pub fn row_id_range_per_component(&self) -> BTreeMap<ComponentName, (RowId, RowId)> {
+    pub fn row_id_range_per_component(
+        &self,
+    ) -> BTreeMap<ComponentName, BTreeMap<ComponentDescriptor, (RowId, RowId)>> {
         re_tracing::profile_function!();
 
         let row_ids = self.row_ids().collect_vec();
@@ -500,43 +633,59 @@ impl Chunk {
         if self.is_sorted() {
             self.components
                 .iter()
-                .filter_map(|(component_name, list_array)| {
-                    let mut row_id_min = None;
-                    let mut row_id_max = None;
+                .map(|(component_name, per_desc)| {
+                    (
+                        *component_name,
+                        per_desc
+                            .iter()
+                            .filter_map(|(component_desc, list_array)| {
+                                let mut row_id_min = None;
+                                let mut row_id_max = None;
 
-                    for (i, &row_id) in row_ids.iter().enumerate() {
-                        if list_array.is_valid(i) {
-                            row_id_min = Some(row_id);
-                        }
-                    }
-                    for (i, &row_id) in row_ids.iter().enumerate().rev() {
-                        if list_array.is_valid(i) {
-                            row_id_max = Some(row_id);
-                        }
-                    }
+                                for (i, &row_id) in row_ids.iter().enumerate() {
+                                    if list_array.is_valid(i) {
+                                        row_id_min = Some(row_id);
+                                    }
+                                }
+                                for (i, &row_id) in row_ids.iter().enumerate().rev() {
+                                    if list_array.is_valid(i) {
+                                        row_id_max = Some(row_id);
+                                    }
+                                }
 
-                    Some((*component_name, (row_id_min?, row_id_max?)))
+                                Some((component_desc.clone(), (row_id_min?, row_id_max?)))
+                            })
+                            .collect(),
+                    )
                 })
                 .collect()
         } else {
             self.components
                 .iter()
-                .filter_map(|(component_name, list_array)| {
-                    let mut row_id_min = Some(RowId::MAX);
-                    let mut row_id_max = Some(RowId::ZERO);
+                .map(|(component_name, per_desc)| {
+                    (
+                        *component_name,
+                        per_desc
+                            .iter()
+                            .filter_map(|(component_desc, list_array)| {
+                                let mut row_id_min = Some(RowId::MAX);
+                                let mut row_id_max = Some(RowId::ZERO);
 
-                    for (i, &row_id) in row_ids.iter().enumerate() {
-                        if list_array.is_valid(i) && Some(row_id) > row_id_min {
-                            row_id_min = Some(row_id);
-                        }
-                    }
-                    for (i, &row_id) in row_ids.iter().enumerate().rev() {
-                        if list_array.is_valid(i) && Some(row_id) < row_id_max {
-                            row_id_max = Some(row_id);
-                        }
-                    }
+                                for (i, &row_id) in row_ids.iter().enumerate() {
+                                    if list_array.is_valid(i) && Some(row_id) > row_id_min {
+                                        row_id_min = Some(row_id);
+                                    }
+                                }
+                                for (i, &row_id) in row_ids.iter().enumerate().rev() {
+                                    if list_array.is_valid(i) && Some(row_id) < row_id_max {
+                                        row_id_max = Some(row_id);
+                                    }
+                                }
 
-                    Some((*component_name, (row_id_min?, row_id_max?)))
+                                Some((component_desc.clone(), (row_id_min?, row_id_max?)))
+                            })
+                            .collect(),
+                    )
                 })
                 .collect()
         }
@@ -585,7 +734,7 @@ impl Chunk {
         is_sorted: Option<bool>,
         row_ids: ArrowStructArray,
         timelines: BTreeMap<Timeline, TimeColumn>,
-        components: BTreeMap<ComponentName, ArrowListArray<i32>>,
+        components: ChunkComponents,
     ) -> ChunkResult<Self> {
         let mut chunk = Self {
             id,
@@ -619,7 +768,7 @@ impl Chunk {
         is_sorted: Option<bool>,
         row_ids: &[RowId],
         timelines: BTreeMap<Timeline, TimeColumn>,
-        components: BTreeMap<ComponentName, ArrowListArray<i32>>,
+        components: ChunkComponents,
     ) -> ChunkResult<Self> {
         re_tracing::profile_function!();
         let row_ids = row_ids
@@ -650,7 +799,7 @@ impl Chunk {
         id: ChunkId,
         entity_path: EntityPath,
         timelines: BTreeMap<Timeline, TimeColumn>,
-        components: BTreeMap<ComponentName, ArrowListArray<i32>>,
+        components: ChunkComponents,
     ) -> ChunkResult<Self> {
         let count = components
             .iter()
@@ -681,7 +830,7 @@ impl Chunk {
         entity_path: EntityPath,
         is_sorted: Option<bool>,
         row_ids: ArrowStructArray,
-        components: BTreeMap<ComponentName, ArrowListArray<i32>>,
+        components: ChunkComponents,
     ) -> ChunkResult<Self> {
         Self::new(
             id,
@@ -714,10 +863,11 @@ impl Chunk {
     #[inline]
     pub fn add_component(
         &mut self,
-        component_name: ComponentName,
+        component_desc: ComponentDescriptor,
         list_array: ArrowListArray<i32>,
     ) -> ChunkResult<()> {
-        self.components.insert(component_name, list_array);
+        self.components
+            .insert_descriptor(component_desc, list_array);
         self.sanity_check()
     }
 
@@ -965,6 +1115,7 @@ impl Chunk {
             .map(|(&time, &counter)| RowId::from_u128((time as u128) << 64 | (counter as u128)))
     }
 
+    // TODO: pattern matched API
     /// Returns an iterator over the [`RowId`]s of a [`Chunk`], for a given component.
     ///
     /// This is different than [`Self::row_ids`]: it will only yield `RowId`s for rows at which
@@ -974,7 +1125,7 @@ impl Chunk {
         &self,
         component_name: &ComponentName,
     ) -> impl Iterator<Item = RowId> + '_ {
-        let Some(list_array) = self.components.get(component_name) else {
+        let Some(list_array) = self.get_first_component(component_name) else {
             return Either::Left(std::iter::empty());
         };
 
@@ -1055,7 +1206,15 @@ impl Chunk {
     }
 
     #[inline]
-    pub fn components(&self) -> &BTreeMap<ComponentName, ArrowListArray<i32>> {
+    pub fn component_descriptors(&self) -> impl Iterator<Item = ComponentDescriptor> + '_ {
+        self.components
+            .values()
+            .flat_map(|per_desc| per_desc.keys())
+            .cloned()
+    }
+
+    #[inline]
+    pub fn components(&self) -> &ChunkComponents {
         &self.components
     }
 
@@ -1137,46 +1296,57 @@ impl TimeColumn {
     // TODO(cmc): This needs to be stored in chunk metadata and transported across IPC.
     pub fn time_range_per_component(
         &self,
-        components: &BTreeMap<ComponentName, ArrowListArray<i32>>,
-    ) -> BTreeMap<ComponentName, ResolvedTimeRange> {
+        components: &ChunkComponents,
+    ) -> BTreeMap<ComponentName, HashMap<ComponentDescriptor, ResolvedTimeRange>> {
         let times = self.times_raw();
         components
             .iter()
-            .filter_map(|(&component_name, list_array)| {
-                if let Some(validity) = list_array.validity() {
-                    // _Potentially_ sparse
+            .map(|(component_name, per_desc)| {
+                (
+                    *component_name,
+                    per_desc
+                        .iter()
+                        .filter_map(|(component_desc, list_array)| {
+                            if let Some(validity) = list_array.validity() {
+                                // Potentially sparse
 
-                    if validity.is_empty() {
-                        return None;
-                    }
+                                if validity.is_empty() {
+                                    return None;
+                                }
 
-                    let is_dense = validity.unset_bits() == 0;
-                    if is_dense {
-                        return Some((component_name, self.time_range));
-                    }
+                                let is_dense = validity.unset_bits() == 0;
+                                if is_dense {
+                                    return Some((component_desc.clone(), self.time_range));
+                                }
 
-                    let mut time_min = TimeInt::MAX;
-                    for (i, time) in times.iter().copied().enumerate() {
-                        if validity.get(i).unwrap_or(false) {
-                            time_min = TimeInt::new_temporal(time);
-                            break;
-                        }
-                    }
+                                let mut time_min = TimeInt::MAX;
+                                for (i, time) in times.iter().copied().enumerate() {
+                                    if validity.get(i).unwrap_or(false) {
+                                        time_min = TimeInt::new_temporal(time);
+                                        break;
+                                    }
+                                }
 
-                    let mut time_max = TimeInt::MIN;
-                    for (i, time) in times.iter().copied().enumerate().rev() {
-                        if validity.get(i).unwrap_or(false) {
-                            time_max = TimeInt::new_temporal(time);
-                            break;
-                        }
-                    }
+                                let mut time_max = TimeInt::MIN;
+                                for (i, time) in times.iter().copied().enumerate().rev() {
+                                    if validity.get(i).unwrap_or(false) {
+                                        time_max = TimeInt::new_temporal(time);
+                                        break;
+                                    }
+                                }
 
-                    Some((component_name, ResolvedTimeRange::new(time_min, time_max)))
-                } else {
-                    // Dense
+                                Some((
+                                    component_desc.clone(),
+                                    ResolvedTimeRange::new(time_min, time_max),
+                                ))
+                            } else {
+                                // Dense
 
-                    Some((component_name, self.time_range))
-                }
+                                Some((component_desc.clone(), self.time_range))
+                            }
+                        })
+                        .collect(),
+                )
             })
             .collect()
     }
@@ -1303,45 +1473,47 @@ impl Chunk {
         }
 
         // Components
-        for (component_name, list_array) in components {
-            if !matches!(list_array.data_type(), arrow2::datatypes::DataType::List(_)) {
-                return Err(ChunkError::Malformed {
-                    reason: format!(
-                        "The outer array in a chunked component batch must be a sparse list, got {:?}",
-                        list_array.data_type(),
-                    ),
-                });
-            }
-            if let arrow2::datatypes::DataType::List(field) = list_array.data_type() {
-                if !field.is_nullable {
+        for (_component_name, per_desc) in components.iter() {
+            for (component_desc, list_array) in per_desc {
+                if !matches!(list_array.data_type(), arrow2::datatypes::DataType::List(_)) {
                     return Err(ChunkError::Malformed {
                         reason: format!(
-                            "The outer array in chunked component batch must be a sparse list, got {:?}",
+                            "The outer array in a chunked component batch must be a sparse list, got {:?}",
                             list_array.data_type(),
                         ),
                     });
                 }
-            }
-            if list_array.len() != row_ids.len() {
-                return Err(ChunkError::Malformed {
-                    reason: format!(
-                        "All component batches in a chunk must have the same number of rows, matching the number of row IDs.\
-                         Found {} row IDs but {} rows for component batch {component_name}",
-                        row_ids.len(), list_array.len(),
-                    ),
-                });
-            }
+                if let arrow2::datatypes::DataType::List(field) = list_array.data_type() {
+                    if !field.is_nullable {
+                        return Err(ChunkError::Malformed {
+                            reason: format!(
+                                "The outer array in chunked component batch must be a sparse list, got {:?}",
+                                list_array.data_type(),
+                            ),
+                        });
+                    }
+                }
+                if list_array.len() != row_ids.len() {
+                    return Err(ChunkError::Malformed {
+                        reason: format!(
+                            "All component batches in a chunk must have the same number of rows, matching the number of row IDs.\
+                             Found {} row IDs but {} rows for component batch {component_desc}",
+                            row_ids.len(), list_array.len(),
+                        ),
+                    });
+                }
 
-            let validity_is_empty = list_array
-                .validity()
-                .map_or(false, |validity| validity.is_empty());
-            if !self.is_empty() && validity_is_empty {
-                return Err(ChunkError::Malformed {
-                    reason: format!(
-                        "All component batches in a chunk must contain at least one non-null entry.\
-                         Found a completely empty column for {component_name}",
-                    ),
-                });
+                let validity_is_empty = list_array
+                    .validity()
+                    .map_or(false, |validity| validity.is_empty());
+                if !self.is_empty() && validity_is_empty {
+                    return Err(ChunkError::Malformed {
+                        reason: format!(
+                            "All component batches in a chunk must contain at least one non-null entry.\
+                             Found a completely empty column for {component_desc}",
+                        ),
+                    });
+                }
             }
         }
 

@@ -18,13 +18,20 @@ namespace rerun {
         cells.reserve(2);
 
         if (archetype.state.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.state.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.state.value(),
+                "rerun.blueprint.archetypes.PanelBlueprint",
+                "state"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         {
             auto indicator = PanelBlueprint::IndicatorComponent();
-            auto result = ComponentBatch::from_loggable(indicator);
+            auto result = ComponentBatch::from_loggable(
+                indicator,
+                "rerun.blueprint.archetypes.PanelBlueprint"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.emplace_back(std::move(result.value));
         }

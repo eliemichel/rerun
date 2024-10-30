@@ -9,10 +9,12 @@ use crossbeam::channel::{Receiver, Sender};
 use itertools::Either;
 use parking_lot::Mutex;
 
-use arrow2::array::{ListArray as ArrowListArray, PrimitiveArray as ArrowPrimitiveArray};
-use re_chunk::{Chunk, ChunkBatcher, ChunkBatcherConfig, ChunkBatcherError, PendingRow, RowId};
+use arrow2::array::PrimitiveArray as ArrowPrimitiveArray;
+use re_chunk::{
+    Chunk, ChunkBatcher, ChunkBatcherConfig, ChunkBatcherError, ChunkComponents, PendingRow, RowId,
+};
 
-use re_chunk::{ChunkError, ChunkId, ComponentName, TimeColumn};
+use re_chunk::{ChunkError, ChunkId, TimeColumn};
 use re_log_types::{
     ApplicationId, ArrowChunkReleaseCallback, BlueprintActivationCommand, EntityPath, LogMsg,
     StoreId, StoreInfo, StoreKind, StoreSource, Time, TimeInt, TimePoint, TimeType, Timeline,
@@ -1002,6 +1004,7 @@ impl RecordingStream {
         &self,
         ent_path: impl Into<EntityPath>,
         timelines: impl IntoIterator<Item = TimeColumn>,
+        // TODO: why does this even take ComponentBatches, why not AsComponents?
         components: impl IntoIterator<Item = &'a dyn re_types_core::ComponentBatch>,
     ) -> RecordingStreamResult<()> {
         let id = ChunkId::new();
@@ -1013,11 +1016,38 @@ impl RecordingStream {
 
         let components: Result<Vec<_>, ChunkError> = components
             .into_iter()
-            .map(|batch| Ok((batch.name(), batch.to_arrow_list_array()?)))
+            .map(|batch| {
+                Ok((
+                    batch.descriptor().into_owned(),
+                    batch.to_arrow_list_array()?,
+                ))
+            })
             .collect();
 
-        let components: BTreeMap<ComponentName, ArrowListArray<i32>> =
-            components?.into_iter().collect();
+        let components: ChunkComponents = components?.into_iter().collect();
+
+        // TODO: wtf is this?
+        let mut all_lengths = timelines
+            .values()
+            .map(|timeline| (timeline.name(), timeline.num_rows()))
+            .chain(
+                components
+                    .iter()
+                    .map(|(component, array)| (component.as_str(), array.len())),
+            );
+
+        // TODO: wtf is this?
+        if let Some((_, expected)) = all_lengths.next() {
+            for (name, len) in all_lengths {
+                if len != expected {
+                    return Err(RecordingStreamError::Chunk(ChunkError::Malformed {
+                        reason: format!(
+                            "Mismatched lengths: '{name}' has length {len} but expected {expected}",
+                        ),
+                    }));
+                }
+            }
+        }
 
         let chunk = Chunk::from_auto_row_ids(id, ent_path.into(), timelines, components)?;
 
@@ -1116,7 +1146,7 @@ impl RecordingStream {
             as_components
                 .as_component_batches()
                 .iter()
-                .map(|any_comp_batch| any_comp_batch.as_ref()),
+                .map(|any_comp_batch| any_comp_batch as &dyn re_types_core::ComponentBatch),
         )
     }
 
@@ -1171,7 +1201,7 @@ impl RecordingStream {
             .map(|comp_batch| {
                 comp_batch
                     .to_arrow()
-                    .map(|array| (comp_batch.name(), array))
+                    .map(|array| (comp_batch.descriptor().into_owned(), array))
             })
             .collect();
         let components: BTreeMap<_, _> = comp_batches?.into_iter().collect();
@@ -2528,7 +2558,7 @@ mod tests {
 
     fn example_rows(timeless: bool) -> Vec<PendingRow> {
         use re_log_types::example_components::{MyColor, MyLabel, MyPoint};
-        use re_types_core::Component as _;
+        use re_types_core::{Component as _, Loggable};
 
         let mut tick = 0i64;
         let mut timepoint = |frame_nr: i64| {
@@ -2548,21 +2578,20 @@ mod tests {
                 timepoint: timepoint(1),
                 components: [
                     (
-                        MyPoint::name(),
-                        <MyPoint as re_types_core::Loggable>::to_arrow([
+                        MyPoint::descriptor(),
+                        <MyPoint as Loggable>::to_arrow([
                             MyPoint::new(10.0, 10.0),
                             MyPoint::new(20.0, 20.0),
                         ])
                         .unwrap(),
                     ), //
                     (
-                        MyColor::name(),
-                        <MyColor as re_types_core::Loggable>::to_arrow([MyColor(0x8080_80FF)])
-                            .unwrap(),
+                        MyColor::descriptor(),
+                        <MyColor as Loggable>::to_arrow([MyColor(0x8080_80FF)]).unwrap(),
                     ), //
                     (
-                        MyLabel::name(),
-                        <MyLabel as re_types_core::Loggable>::to_arrow([] as [MyLabel; 0]).unwrap(),
+                        MyLabel::descriptor(),
+                        <MyLabel as Loggable>::to_arrow([] as [MyLabel; 0]).unwrap(),
                     ), //
                 ]
                 .into_iter()
@@ -2576,16 +2605,16 @@ mod tests {
                 timepoint: timepoint(1),
                 components: [
                     (
-                        MyPoint::name(),
-                        <MyPoint as re_types_core::Loggable>::to_arrow([] as [MyPoint; 0]).unwrap(),
+                        MyPoint::descriptor(),
+                        <MyPoint as Loggable>::to_arrow([] as [MyPoint; 0]).unwrap(),
                     ), //
                     (
-                        MyColor::name(),
-                        <MyColor as re_types_core::Loggable>::to_arrow([] as [MyColor; 0]).unwrap(),
+                        MyColor::descriptor(),
+                        <MyColor as Loggable>::to_arrow([] as [MyColor; 0]).unwrap(),
                     ), //
                     (
-                        MyLabel::name(),
-                        <MyLabel as re_types_core::Loggable>::to_arrow([] as [MyLabel; 0]).unwrap(),
+                        MyLabel::descriptor(),
+                        <MyLabel as Loggable>::to_arrow([] as [MyLabel; 0]).unwrap(),
                     ), //
                 ]
                 .into_iter()
@@ -2599,18 +2628,16 @@ mod tests {
                 timepoint: timepoint(1),
                 components: [
                     (
-                        MyPoint::name(),
-                        <MyPoint as re_types_core::Loggable>::to_arrow([] as [MyPoint; 0]).unwrap(),
+                        MyPoint::descriptor(),
+                        <MyPoint as Loggable>::to_arrow([] as [MyPoint; 0]).unwrap(),
                     ), //
                     (
-                        MyColor::name(),
-                        <MyColor as re_types_core::Loggable>::to_arrow([MyColor(0xFFFF_FFFF)])
-                            .unwrap(),
+                        MyColor::descriptor(),
+                        <MyColor as Loggable>::to_arrow([MyColor(0xFFFF_FFFF)]).unwrap(),
                     ), //
                     (
-                        MyLabel::name(),
-                        <MyLabel as re_types_core::Loggable>::to_arrow([MyLabel("hey".into())])
-                            .unwrap(),
+                        MyLabel::descriptor(),
+                        <MyLabel as Loggable>::to_arrow([MyLabel("hey".into())]).unwrap(),
                     ), //
                 ]
                 .into_iter()

@@ -17,18 +17,23 @@ namespace rerun {
         cells.reserve(3);
 
         {
-            auto result = ComponentBatch::from_loggable(archetype.data);
+            auto result =
+                ComponentBatch::from_loggable(archetype.data, "rerun.archetypes.Tensor", "data");
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.value_range.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.value_range.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.value_range.value(),
+                "rerun.archetypes.Tensor",
+                "value_range"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         {
             auto indicator = Tensor::IndicatorComponent();
-            auto result = ComponentBatch::from_loggable(indicator);
+            auto result = ComponentBatch::from_loggable(indicator, "rerun.archetypes.Tensor");
             RR_RETURN_NOT_OK(result.error);
             cells.emplace_back(std::move(result.value));
         }

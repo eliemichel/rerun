@@ -17,43 +17,71 @@ namespace rerun {
         cells.reserve(8);
 
         {
-            auto result = ComponentBatch::from_loggable(archetype.translation);
+            auto result = ComponentBatch::from_loggable(
+                archetype.translation,
+                "rerun.archetypes.Transform3D",
+                "translation"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         {
-            auto result = ComponentBatch::from_loggable(archetype.rotation_axis_angle);
+            auto result = ComponentBatch::from_loggable(
+                archetype.rotation_axis_angle,
+                "rerun.archetypes.Transform3D",
+                "rotation_axis_angle"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         {
-            auto result = ComponentBatch::from_loggable(archetype.quaternion);
+            auto result = ComponentBatch::from_loggable(
+                archetype.quaternion,
+                "rerun.archetypes.Transform3D",
+                "quaternion"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         {
-            auto result = ComponentBatch::from_loggable(archetype.scale);
+            auto result = ComponentBatch::from_loggable(
+                archetype.scale,
+                "rerun.archetypes.Transform3D",
+                "scale"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         {
-            auto result = ComponentBatch::from_loggable(archetype.mat3x3);
+            auto result = ComponentBatch::from_loggable(
+                archetype.mat3x3,
+                "rerun.archetypes.Transform3D",
+                "mat3x3"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         {
-            auto result = ComponentBatch::from_loggable(archetype.relation);
+            auto result = ComponentBatch::from_loggable(
+                archetype.relation,
+                "rerun.archetypes.Transform3D",
+                "relation"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         {
-            auto result = ComponentBatch::from_loggable(archetype.axis_length);
+            auto result = ComponentBatch::from_loggable(
+                archetype.axis_length,
+                "rerun.archetypes.Transform3D",
+                "axis_length"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         {
             auto indicator = Transform3D::IndicatorComponent();
-            auto result = ComponentBatch::from_loggable(indicator);
+            auto result = ComponentBatch::from_loggable(indicator, "rerun.archetypes.Transform3D");
             RR_RETURN_NOT_OK(result.error);
             cells.emplace_back(std::move(result.value));
         }

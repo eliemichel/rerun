@@ -18,33 +18,56 @@ namespace rerun {
         cells.reserve(6);
 
         if (archetype.timeline.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.timeline.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.timeline.value(),
+                "rerun.blueprint.archetypes.DataframeQuery",
+                "timeline"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.filter_by_range.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.filter_by_range.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.filter_by_range.value(),
+                "rerun.blueprint.archetypes.DataframeQuery",
+                "filter_by_range"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.filter_is_not_null.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.filter_is_not_null.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.filter_is_not_null.value(),
+                "rerun.blueprint.archetypes.DataframeQuery",
+                "filter_is_not_null"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.apply_latest_at.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.apply_latest_at.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.apply_latest_at.value(),
+                "rerun.blueprint.archetypes.DataframeQuery",
+                "apply_latest_at"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         if (archetype.select.has_value()) {
-            auto result = ComponentBatch::from_loggable(archetype.select.value());
+            auto result = ComponentBatch::from_loggable(
+                archetype.select.value(),
+                "rerun.blueprint.archetypes.DataframeQuery",
+                "select"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.push_back(std::move(result.value));
         }
         {
             auto indicator = DataframeQuery::IndicatorComponent();
-            auto result = ComponentBatch::from_loggable(indicator);
+            auto result = ComponentBatch::from_loggable(
+                indicator,
+                "rerun.blueprint.archetypes.DataframeQuery"
+            );
             RR_RETURN_NOT_OK(result.error);
             cells.emplace_back(std::move(result.value));
         }

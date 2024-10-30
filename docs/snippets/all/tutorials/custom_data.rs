@@ -3,10 +3,14 @@
 use rerun::{
     demo_util::grid,
     external::{arrow2, glam, re_types},
-    ComponentName,
 };
 
+// TODO: i guess that is where we can update these tests, right?
+
 // ---
+
+// TODO: This example is only part of the story. We need to show both how to build a custom
+// archetype using an existing rerun component and how to go full homegrown.
 
 /// A custom [component bundle] that extends Rerun's builtin [`rerun::Points3D`] archetype with extra
 /// [`rerun::Component`]s.
@@ -26,9 +30,9 @@ impl rerun::AsComponents for CustomPoints3D {
             .chain(
                 [
                     Some(indicator.to_batch()),
-                    self.confidences
-                        .as_ref()
-                        .map(|v| (v as &dyn rerun::ComponentBatch).into()),
+                    self.confidences.as_ref().map(|v| {
+                        rerun::MaybeOwnedComponentBatch::new(v as &dyn rerun::ComponentBatch)
+                    }),
                 ]
                 .into_iter()
                 .flatten(),
@@ -38,6 +42,9 @@ impl rerun::AsComponents for CustomPoints3D {
 }
 
 // ---
+
+// TODO: This example is only part of the story. We need to show both how to build a custom
+// component using an existing rerun datatype and how to go full homegrown.
 
 /// A custom [`rerun::Component`] that is backed by a builtin [`rerun::Float32`] scalar.
 #[derive(Debug, Clone, Copy)]
@@ -75,8 +82,12 @@ impl rerun::Loggable for Confidence {
 
 impl rerun::Component for Confidence {
     #[inline]
-    fn name() -> ComponentName {
-        "user.Confidence".into()
+    fn descriptor() -> rerun::ComponentDescriptor {
+        rerun::ComponentDescriptor {
+            archetype_name: None,
+            archetype_field_name: None,
+            component_name: "user.Confidence".into(),
+        }
     }
 }
 

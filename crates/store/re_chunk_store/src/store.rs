@@ -7,7 +7,7 @@ use nohash_hasher::IntMap;
 
 use re_chunk::{Chunk, ChunkId, RowId, TransportChunk};
 use re_log_types::{EntityPath, StoreId, StoreInfo, TimeInt, Timeline};
-use re_types_core::ComponentName;
+use re_types_core::{ComponentDescriptor, ComponentName};
 
 use crate::{ChunkStoreChunkStats, ChunkStoreError, ChunkStoreResult};
 
@@ -266,9 +266,9 @@ pub type ChunkIdSetPerTimePerComponentPerTimeline =
 pub type ChunkIdSetPerTimePerComponentPerTimelinePerEntity =
     BTreeMap<EntityPath, ChunkIdSetPerTimePerComponentPerTimeline>;
 
-pub type ChunkIdPerComponent = BTreeMap<ComponentName, ChunkId>;
+pub type ChunkIdPerComponentName = BTreeMap<ComponentName, ChunkId>;
 
-pub type ChunkIdPerComponentPerEntity = BTreeMap<EntityPath, ChunkIdPerComponent>;
+pub type ChunkIdPerComponentPerEntity = BTreeMap<EntityPath, ChunkIdPerComponentName>;
 
 pub type ChunkIdSetPerTimePerTimeline = BTreeMap<Timeline, ChunkIdSetPerTime>;
 
@@ -409,8 +409,10 @@ pub struct ChunkStore {
     // different datatype for a given component.
     pub(crate) type_registry: IntMap<ComponentName, ArrowDataType>,
 
-    pub(crate) per_column_metadata:
-        BTreeMap<EntityPath, BTreeMap<ComponentName, ColumnMetadataState>>,
+    pub(crate) per_column_metadata: BTreeMap<
+        EntityPath,
+        BTreeMap<ComponentName, BTreeMap<ComponentDescriptor, ColumnMetadataState>>,
+    >,
 
     pub(crate) chunks_per_chunk_id: BTreeMap<ChunkId, Arc<Chunk>>,
 
@@ -650,7 +652,12 @@ impl ChunkStore {
         } = self
             .per_column_metadata
             .get(entity_path)
-            .and_then(|per_component| per_component.get(component_name))?;
+            .and_then(|per_name| per_name.get(component_name))
+            .and_then(|per_component| {
+                per_component.iter().find_map(|(descr, metadata)| {
+                    (descr.component_name == *component_name).then_some(metadata)
+                })
+            })?;
 
         let is_static = self
             .static_chunk_ids_per_entity
@@ -662,8 +669,9 @@ impl ChunkStore {
         let is_indicator = component_name.is_indicator_component();
 
         use re_types_core::Archetype as _;
-        let is_tombstone =
-            re_types_core::archetypes::Clear::all_components().contains(component_name);
+        let is_tombstone = re_types_core::archetypes::Clear::all_components()
+            .iter()
+            .any(|descr| descr.component_name == *component_name);
 
         Some(ColumnMetadata {
             is_static,
@@ -704,7 +712,7 @@ impl ChunkStore {
 
         // TODO(cmc): offload the decoding to a background thread.
         for res in &mut decoder {
-            let msg = res.with_context(|| format!("couldn't decode message {path_to_rrd:?} "))?;
+            let msg = res.with_context(|| format!("couldn't decode message {path_to_rrd:?}"))?;
             match msg {
                 re_log_types::LogMsg::SetStoreInfo(info) => {
                     let store = stores.entry(info.info.store_id.clone()).or_insert_with(|| {
@@ -725,11 +733,64 @@ impl ChunkStore {
                     };
 
                     let chunk = Chunk::from_transport(&transport)
-                        .with_context(|| format!("couldn't decode chunk {path_to_rrd:?} "))?;
+                        .with_context(|| format!("couldn't decode chunk {path_to_rrd:?}"))?;
 
                     store
                         .insert_chunk(&Arc::new(chunk))
-                        .with_context(|| format!("couldn't insert chunk {path_to_rrd:?} "))?;
+                        .with_context(|| format!("couldn't insert chunk {path_to_rrd:?}"))?;
+                }
+
+                re_log_types::LogMsg::BlueprintActivationCommand(_) => {}
+            }
+        }
+
+        Ok(stores)
+    }
+
+    /// Instantiate a new `ChunkStore` with the given [`ChunkStoreConfig`].
+    ///
+    /// The stores will be prefilled with the data in the given `log_msgs`.
+    ///
+    /// See also:
+    /// * [`ChunkStore::new`]
+    pub fn from_log_msgs(
+        store_config: &ChunkStoreConfig,
+        log_msgs: impl IntoIterator<Item = re_log_types::LogMsg>,
+    ) -> anyhow::Result<BTreeMap<StoreId, Self>> {
+        re_tracing::profile_function!();
+
+        use anyhow::Context as _;
+
+        let mut stores = BTreeMap::new();
+
+        // TODO(cmc): offload the decoding to a background thread.
+        let log_msgs = log_msgs.into_iter();
+        for msg in log_msgs {
+            match msg {
+                re_log_types::LogMsg::SetStoreInfo(info) => {
+                    let store = stores.entry(info.info.store_id.clone()).or_insert_with(|| {
+                        Self::new(info.info.store_id.clone(), store_config.clone())
+                    });
+
+                    store.set_info(info.info);
+                }
+
+                re_log_types::LogMsg::ArrowMsg(store_id, msg) => {
+                    let Some(store) = stores.get_mut(&store_id) else {
+                        anyhow::bail!("unknown store ID: {store_id}");
+                    };
+
+                    let transport = TransportChunk {
+                        schema: msg.schema.clone(),
+                        data: msg.chunk.clone(),
+                    };
+
+                    let chunk = Chunk::from_transport(&transport)
+                        .with_context(|| "couldn't decode chunk".to_owned())?;
+
+                    store
+                        .insert_chunk(&Arc::new(chunk))
+                        .with_context(|| "couldn't insert chunk".to_owned())?;
                 }
 
                 re_log_types::LogMsg::BlueprintActivationCommand(_) => {}

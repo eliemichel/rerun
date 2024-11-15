@@ -9,6 +9,7 @@ from .. import datatypes
 from .._baseclasses import (
     ComponentBatchMixin,
     ComponentMixin,
+    ComponentDescriptor,
 )
 
 __all__ = ["Position3D", "Position3DBatch"]
@@ -25,6 +26,7 @@ class Position3D(datatypes.Vec3D, ComponentMixin):
 
 
 class Position3DBatch(datatypes.Vec3DBatch, ComponentBatchMixin):
+    _COMPONENT_DESCRIPTOR: ComponentDescriptor = ComponentDescriptor("rerun.components.Position3D")
     _COMPONENT_NAME: str = "rerun.components.Position3D"
 
 

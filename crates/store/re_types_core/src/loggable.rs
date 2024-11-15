@@ -101,6 +101,7 @@ pub trait Component: Loggable {
     // TODO: the main reason we keep this here and everywhere else is convenience, but then again
     // the only reason we need that convenience is because we still have a bunch of shit that is
     // indexed by component names.
+    // TODO: working with raw component names shoud always be the exception, not the norm.
     //
     /// The fully-qualified name of this component, e.g. `rerun.components.Position2D`.
     ///

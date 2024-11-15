@@ -9,7 +9,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 3D mesh _and_ a point cloud by default.
     rec.log(
         "points_and_mesh",
-        [
+        &[
             &rerun::Points3D::indicator() as &dyn rerun::ComponentBatch,
             &rerun::Mesh3D::indicator() as _,
             &[[0.0, 0.0, 0.0], [10.0, 0.0, 0.0], [0.0, 10.0, 0.0]].map(rerun::Position3D::from),

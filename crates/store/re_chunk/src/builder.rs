@@ -150,7 +150,6 @@ impl ChunkBuilder {
             component_batch
                 .to_arrow()
                 .ok()
-                // TODO: this is very shady, ye?
                 .map(|array| (component_batch.descriptor().into_owned(), array)),
         )
     }
@@ -170,7 +169,6 @@ impl ChunkBuilder {
                 component_batch
                     .to_arrow()
                     .ok()
-                    // TODO: this is very shady, ye?
                     .map(|array| (component_batch.descriptor().into_owned(), array))
             }),
         )

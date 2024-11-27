@@ -28,6 +28,9 @@ pub struct WorldGridConfiguration {
 
     /// How thick the lines are in UI units.
     pub thickness_ui: f32,
+
+    /// Offset of the grid along its normal.
+    pub normal_offset: f32,
 }
 
 mod gpu_data {

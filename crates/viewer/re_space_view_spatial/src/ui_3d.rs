@@ -15,7 +15,7 @@ use re_space_view::controls::{
 use re_types::{
     blueprint::{
         archetypes::{Background, LineGrid3D},
-        components::{GridSpacing, PlaneOrientation, UiRadius, Visible},
+        components::{GridSpacing, PlaneOffset, PlaneOrientation, UiRadius, Visible},
     },
     components::ViewCoordinates,
     view_coordinates::SignedAxis3,
@@ -740,6 +740,7 @@ impl SpatialSpaceView3D {
             PlaneOrientation::Yz => re_math::Plane3::YZ,
             PlaneOrientation::Xz => re_math::Plane3::ZX,
         };
+        let normal_offset = **grid_config.component_or_fallback::<PlaneOffset>(ctx, self, state)?;
 
         let Some(render_ctx) = ctx.render_ctx else {
             return Ok(None);
@@ -752,6 +753,7 @@ impl SpatialSpaceView3D {
                 plane,
                 spacing,
                 thickness_ui,
+                normal_offset,
             },
         )))
     }

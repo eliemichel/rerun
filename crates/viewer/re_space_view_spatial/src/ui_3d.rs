@@ -735,12 +735,12 @@ impl SpatialSpaceView3D {
             grid_config.component_or_fallback::<re_types::components::Color>(ctx, self, state)?;
         let orientation =
             grid_config.component_or_fallback::<PlaneOrientation>(ctx, self, state)?;
-        let plane = match orientation {
-            PlaneOrientation::Xy => re_math::Plane3::XY,
-            PlaneOrientation::Yz => re_math::Plane3::YZ,
-            PlaneOrientation::Xz => re_math::Plane3::ZX,
-        };
         let normal_offset = **grid_config.component_or_fallback::<PlaneOffset>(ctx, self, state)?;
+        let plane = match orientation {
+            PlaneOrientation::Xy => re_math::Plane3::from_normal_dist(glam::Vec3::Z, normal_offset),
+            PlaneOrientation::Yz => re_math::Plane3::from_normal_dist(glam::Vec3::X, normal_offset),
+            PlaneOrientation::Xz => re_math::Plane3::from_normal_dist(glam::Vec3::Y, normal_offset),
+        };
 
         let Some(render_ctx) = ctx.render_ctx else {
             return Ok(None);
@@ -753,7 +753,6 @@ impl SpatialSpaceView3D {
                 plane,
                 spacing,
                 thickness_ui,
-                normal_offset,
             },
         )))
     }

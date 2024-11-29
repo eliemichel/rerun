@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["draw_arrow","draw_edge","find_border_point"]};

@@ -230,18 +230,18 @@
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>selection_ui(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         ui: <span class="kw-2">&amp;mut </span>egui::Ui,
-        blueprint: <span class="kw-2">&amp;</span>ViewportBlueprint,
+        viewport: <span class="kw-2">&amp;</span>ViewportBlueprint,
         history: <span class="kw-2">&amp;mut </span>SelectionHistory,
     ) -&gt; <span class="prelude-ty">Option</span>&lt;ItemCollection&gt; {
-        <span class="kw">let </span>next = <span class="self">self</span>.next_button_ui(ui, blueprint, history);
-        <span class="kw">let </span>prev = <span class="self">self</span>.prev_button_ui(ui, blueprint, history);
+        <span class="kw">let </span>next = <span class="self">self</span>.next_button_ui(ui, viewport, history);
+        <span class="kw">let </span>prev = <span class="self">self</span>.prev_button_ui(ui, viewport, history);
         prev.or(next)
     }
 
     <span class="kw">fn </span>prev_button_ui(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         ui: <span class="kw-2">&amp;mut </span>egui::Ui,
-        blueprint: <span class="kw-2">&amp;</span>ViewportBlueprint,
+        viewport: <span class="kw-2">&amp;</span>ViewportBlueprint,
         history: <span class="kw-2">&amp;mut </span>SelectionHistory,
     ) -&gt; <span class="prelude-ty">Option</span>&lt;ItemCollection&gt; {
         <span class="comment">// undo selection
@@ -254,7 +254,7 @@
                 \n\
                 Right-click for more."</span>,
                     UICommand::SelectionPrevious.format_shortcut_tooltip_suffix(ui.ctx()),
-                    selection_to_string(blueprint, <span class="kw-2">&amp;</span>previous.selection),
+                    selection_to_string(viewport, <span class="kw-2">&amp;</span>previous.selection),
                 ));
 
             <span class="kw">let </span><span class="kw-2">mut </span>return_current = <span class="bool-val">false</span>;
@@ -262,7 +262,7 @@
                 <span class="comment">// undo: newest on top, oldest on bottom
                 </span><span class="kw">let </span>cur = history.current;
                 <span class="kw">for </span>i <span class="kw">in </span>(<span class="number">0</span>..history.current).rev() {
-                    <span class="self">self</span>.history_item_ui(blueprint, ui, i, history);
+                    <span class="self">self</span>.history_item_ui(viewport, ui, i, history);
                 }
                 return_current = cur != history.current;
             });
@@ -289,7 +289,7 @@
     <span class="kw">fn </span>next_button_ui(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         ui: <span class="kw-2">&amp;mut </span>egui::Ui,
-        blueprint: <span class="kw-2">&amp;</span>ViewportBlueprint,
+        viewport: <span class="kw-2">&amp;</span>ViewportBlueprint,
         history: <span class="kw-2">&amp;mut </span>SelectionHistory,
     ) -&gt; <span class="prelude-ty">Option</span>&lt;ItemCollection&gt; {
         <span class="comment">// redo selection
@@ -302,7 +302,7 @@
                 \n\
                 Right-click for more."</span>,
                     UICommand::SelectionNext.format_shortcut_tooltip_suffix(ui.ctx()),
-                    selection_to_string(blueprint, <span class="kw-2">&amp;</span>next.selection),
+                    selection_to_string(viewport, <span class="kw-2">&amp;</span>next.selection),
                 ));
 
             <span class="kw">let </span><span class="kw-2">mut </span>return_current = <span class="bool-val">false</span>;
@@ -310,7 +310,7 @@
                 <span class="comment">// redo: oldest on top, most recent on bottom
                 </span><span class="kw">let </span>cur = history.current;
                 <span class="kw">for </span>i <span class="kw">in </span>(history.current + <span class="number">1</span>)..history.stack.len() {
-                    <span class="self">self</span>.history_item_ui(blueprint, ui, i, history);
+                    <span class="self">self</span>.history_item_ui(viewport, ui, i, history);
                 }
                 return_current = cur != history.current;
             });
@@ -337,7 +337,7 @@
     <span class="attr">#[allow(clippy::unused_self)]
     </span><span class="kw">fn </span>history_item_ui(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        blueprint: <span class="kw-2">&amp;</span>ViewportBlueprint,
+        viewport: <span class="kw-2">&amp;</span>ViewportBlueprint,
         ui: <span class="kw-2">&amp;mut </span>egui::Ui,
         index: usize,
         history: <span class="kw-2">&amp;mut </span>SelectionHistory,
@@ -346,7 +346,7 @@
             ui.horizontal(|ui| {
                 {
                     <span class="comment">// borrow checker workaround
-                    </span><span class="kw">let </span>sel = selection_to_string(blueprint, sel);
+                    </span><span class="kw">let </span>sel = selection_to_string(viewport, sel);
                     <span class="kw">if </span>ui
                         .selectable_value(<span class="kw-2">&amp;mut </span>history.current, index, sel)
                         .clicked()
@@ -370,14 +370,14 @@
     ui.weak(RichText::new(<span class="macro">format!</span>(<span class="string">"({})"</span>, sel.kind())));
 }
 
-<span class="kw">fn </span>selection_to_string(blueprint: <span class="kw-2">&amp;</span>ViewportBlueprint, selection: <span class="kw-2">&amp;</span>ItemCollection) -&gt; String {
+<span class="kw">fn </span>selection_to_string(viewport: <span class="kw-2">&amp;</span>ViewportBlueprint, selection: <span class="kw-2">&amp;</span>ItemCollection) -&gt; String {
     <span class="macro">debug_assert!</span>(
         !selection.is_empty(),
         <span class="string">"History should never contain empty selections."
     </span>);
     <span class="kw">if </span>selection.len() == <span class="number">1 </span>{
         <span class="kw">if let </span><span class="prelude-val">Some</span>(item) = selection.iter_items().next() {
-            item_to_string(blueprint, item)
+            item_to_string(viewport, item)
         } <span class="kw">else </span>{
             <span class="comment">// All items got removed or weren't there to begin with.
             </span><span class="macro">debug_assert!</span>(
@@ -393,14 +393,14 @@
     }
 }
 
-<span class="kw">fn </span>item_to_string(blueprint: <span class="kw-2">&amp;</span>ViewportBlueprint, item: <span class="kw-2">&amp;</span>Item) -&gt; String {
+<span class="kw">fn </span>item_to_string(viewport: <span class="kw-2">&amp;</span>ViewportBlueprint, item: <span class="kw-2">&amp;</span>Item) -&gt; String {
     <span class="kw">match </span>item {
         Item::AppId(app_id) =&gt; app_id.to_string(),
         Item::DataSource(data_source) =&gt; data_source.to_string(),
         Item::StoreId(store_id) =&gt; store_id.to_string(),
         Item::SpaceView(space_view_id) =&gt; {
             <span class="comment">// TODO(#4678): unnamed space views should have their label formatted accordingly (subdued)
-            </span><span class="kw">if let </span><span class="prelude-val">Some</span>(space_view) = blueprint.view(space_view_id) {
+            </span><span class="kw">if let </span><span class="prelude-val">Some</span>(space_view) = viewport.view(space_view_id) {
                 space_view.display_name_or_default().as_ref().to_owned()
             } <span class="kw">else </span>{
                 <span class="string">"&lt;removed space view&gt;"</span>.to_owned()
@@ -409,7 +409,7 @@
         Item::InstancePath(instance_path) =&gt; instance_path.to_string(),
         Item::DataResult(space_view_id, instance_path) =&gt; {
             <span class="comment">// TODO(#4678): unnamed space views should have their label formatted accordingly (subdued)
-            </span><span class="kw">let </span>space_view_display_name = <span class="kw">if let </span><span class="prelude-val">Some</span>(space_view) = blueprint.view(space_view_id) {
+            </span><span class="kw">let </span>space_view_display_name = <span class="kw">if let </span><span class="prelude-val">Some</span>(space_view) = viewport.view(space_view_id) {
                 space_view.display_name_or_default().as_ref().to_owned()
             } <span class="kw">else </span>{
                 <span class="string">"&lt;removed space view&gt;"</span>.to_owned()
@@ -422,7 +422,7 @@
         }
         Item::Container(container_id) =&gt; {
             <span class="comment">// TODO(#4678): unnamed container should have their label formatted accordingly (subdued)
-            </span><span class="kw">if let </span><span class="prelude-val">Some</span>(container) = blueprint.container(container_id) {
+            </span><span class="kw">if let </span><span class="prelude-val">Some</span>(container) = viewport.container(container_id) {
                 container.display_name_or_default().as_ref().to_owned()
             } <span class="kw">else </span>{
                 <span class="string">"&lt;removed container&gt;"</span>.to_owned()

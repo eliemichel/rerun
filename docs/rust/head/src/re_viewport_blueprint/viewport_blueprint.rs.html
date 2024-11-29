@@ -909,44 +909,13 @@
 <a href="#909" id="909">909</a>
 <a href="#910" id="910">910</a>
 <a href="#911" id="911">911</a>
-<a href="#912" id="912">912</a>
-<a href="#913" id="913">913</a>
-<a href="#914" id="914">914</a>
-<a href="#915" id="915">915</a>
-<a href="#916" id="916">916</a>
-<a href="#917" id="917">917</a>
-<a href="#918" id="918">918</a>
-<a href="#919" id="919">919</a>
-<a href="#920" id="920">920</a>
-<a href="#921" id="921">921</a>
-<a href="#922" id="922">922</a>
-<a href="#923" id="923">923</a>
-<a href="#924" id="924">924</a>
-<a href="#925" id="925">925</a>
-<a href="#926" id="926">926</a>
-<a href="#927" id="927">927</a>
-<a href="#928" id="928">928</a>
-<a href="#929" id="929">929</a>
-<a href="#930" id="930">930</a>
-<a href="#931" id="931">931</a>
-<a href="#932" id="932">932</a>
-<a href="#933" id="933">933</a>
-<a href="#934" id="934">934</a>
-<a href="#935" id="935">935</a>
-<a href="#936" id="936">936</a>
-<a href="#937" id="937">937</a>
-<a href="#938" id="938">938</a>
-<a href="#939" id="939">939</a>
-<a href="#940" id="940">940</a>
-<a href="#941" id="941">941</a>
-<a href="#942" id="942">942</a>
-<a href="#943" id="943">943</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::BTreeMap;
-<span class="kw">use </span>std::sync::atomic::{AtomicBool, Ordering};
+</pre></div><pre class="rust"><code><span class="kw">use </span>std::sync::atomic::{AtomicBool, Ordering};
+<span class="kw">use </span>std::{collections::BTreeMap, sync::Arc};
 
 <span class="kw">use </span>ahash::HashMap;
 <span class="kw">use </span>egui_tiles::{SimplificationOptions, TileId};
 <span class="kw">use </span>nohash_hasher::IntSet;
+<span class="kw">use </span>parking_lot::Mutex;
 <span class="kw">use </span>re_types::{Archetype <span class="kw">as _</span>, SpaceViewClassIdentifier};
 <span class="kw">use </span>smallvec::SmallVec;
 
@@ -955,17 +924,24 @@
 <span class="kw">use </span>re_types::blueprint::components::ViewerRecommendationHash;
 <span class="kw">use </span>re_types_blueprint::blueprint::archetypes <span class="kw">as </span>blueprint_archetypes;
 <span class="kw">use </span>re_types_blueprint::blueprint::components::{
-    AutoLayout, AutoSpaceViews, IncludedSpaceView, RootContainer, SpaceViewMaximized,
+    AutoLayout, AutoSpaceViews, RootContainer, SpaceViewMaximized,
 };
 <span class="kw">use </span>re_viewer_context::{
     blueprint_id_to_tile_id, ContainerId, Contents, Item, SpaceViewId, ViewerContext,
 };
 
-<span class="kw">use crate</span>::{container::ContainerBlueprint, SpaceViewBlueprint, TreeAction, VIEWPORT_PATH};
+<span class="kw">use crate</span>::{container::ContainerBlueprint, SpaceViewBlueprint, ViewportCommand, VIEWPORT_PATH};
 
 <span class="comment">// ----------------------------------------------------------------------------
 
 </span><span class="doccomment">/// Describes the layout and contents of the Viewport Panel.
+///
+/// This datastructure is loaded from the blueprint store at the start of each frame.
+///
+/// It remain immutable during the frame.
+///
+/// Any change is queued up into [`Self::deferred_commands`] and applied at the end of the frame,
+/// right before saving to the blueprint store.
 </span><span class="kw">pub struct </span>ViewportBlueprint {
     <span class="doccomment">/// Where the space views are stored.
     ///
@@ -979,36 +955,38 @@
     </span><span class="kw">pub </span>root_container: ContainerId,
 
     <span class="doccomment">/// The layouts of all the space views.
+    ///
+    /// If [`Self::maximized`] is set, this tree is ignored.
     </span><span class="kw">pub </span>tree: egui_tiles::Tree&lt;SpaceViewId&gt;,
 
-    <span class="doccomment">/// Show one tab as maximized?
+    <span class="doccomment">/// Show only one space-view as maximized?
+    ///
+    /// If set, [`Self::tree`] is ignored.
     </span><span class="kw">pub </span>maximized: <span class="prelude-ty">Option</span>&lt;SpaceViewId&gt;,
 
     <span class="doccomment">/// Whether the viewport layout is determined automatically.
     ///
+    /// If `true`, we auto-layout all space-views whenever a new space-view is added.
+    ///
     /// Set to `false` the first time the user messes around with the viewport blueprint.
-    /// Note: we use a mutex here because writes needs to be effective immediately during the frame.
+    /// Note: we use an atomic here because writes needs to be effective immediately during the frame.
     </span>auto_layout: AtomicBool,
 
-    <span class="doccomment">/// Whether space views should be created automatically.
+    <span class="doccomment">/// Whether space views should be created automatically for entities that are not already in a space.
     ///
-    /// Note: we use a mutex here because writes needs to be effective immediately during the frame.
+    /// Note: we use an atomic here because writes needs to be effective immediately during the frame.
     </span>auto_space_views: AtomicBool,
 
     <span class="doccomment">/// Hashes of all recommended space views the viewer has already added and that should not be added again.
     </span>past_viewer_recommendations: IntSet&lt;ViewerRecommendationHash&gt;,
 
-    <span class="doccomment">/// Channel to pass Blueprint mutation messages back to the Viewport.
-    </span>tree_action_sender: std::sync::mpsc::Sender&lt;TreeAction&gt;,
+    <span class="doccomment">/// Blueprint mutation events that will be processed at the end of the frame.
+    </span><span class="kw">pub </span>deferred_commands: Arc&lt;Mutex&lt;Vec&lt;ViewportCommand&gt;&gt;&gt;,
 }
 
 <span class="kw">impl </span>ViewportBlueprint {
     <span class="doccomment">/// Attempt to load a [`SpaceViewBlueprint`] from the blueprint store.
-    </span><span class="kw">pub fn </span>try_from_db(
-        blueprint_db: <span class="kw-2">&amp;</span>re_entity_db::EntityDb,
-        query: <span class="kw-2">&amp;</span>LatestAtQuery,
-        tree_action_sender: std::sync::mpsc::Sender&lt;TreeAction&gt;,
-    ) -&gt; <span class="self">Self </span>{
+    </span><span class="kw">pub fn </span>try_from_db(blueprint_db: <span class="kw-2">&amp;</span>re_entity_db::EntityDb, query: <span class="kw-2">&amp;</span>LatestAtQuery) -&gt; <span class="self">Self </span>{
         <span class="macro">re_tracing::profile_function!</span>();
 
         <span class="kw">let </span>blueprint_engine = blueprint_db.storage_engine();
@@ -1038,17 +1016,29 @@
         <span class="kw">let </span>root_container: <span class="prelude-ty">Option</span>&lt;ContainerId&gt; = root_container.map(|id| id.<span class="number">0</span>.into());
         <span class="macro">re_log::trace_once!</span>(<span class="string">"Loaded root_container: {root_container:?}"</span>);
 
-        <span class="kw">let </span>all_space_view_ids: Vec&lt;SpaceViewId&gt; = blueprint_db
-            .tree()
-            .children
-            .get(SpaceViewId::registry_part())
-            .map(|tree| {
-                tree.children
-                    .values()
-                    .map(|subtree| SpaceViewId::from_entity_path(<span class="kw-2">&amp;</span>subtree.path))
-                    .collect()
-            })
-            .unwrap_or_default();
+        <span class="kw">let </span><span class="kw-2">mut </span>containers: BTreeMap&lt;ContainerId, ContainerBlueprint&gt; = Default::default();
+        <span class="kw">let </span><span class="kw-2">mut </span>all_space_view_ids: Vec&lt;SpaceViewId&gt; = Default::default();
+
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(root_container) = root_container {
+            <span class="macro">re_tracing::profile_scope!</span>(<span class="string">"visit_all_containers"</span>);
+            <span class="kw">let </span><span class="kw-2">mut </span>container_ids_to_visit: Vec&lt;ContainerId&gt; = <span class="macro">vec!</span>[root_container];
+            <span class="kw">while let </span><span class="prelude-val">Some</span>(id) = container_ids_to_visit.pop() {
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(container) = ContainerBlueprint::try_from_db(blueprint_db, query, id) {
+                    <span class="macro">re_log::trace_once!</span>(<span class="string">"Container {id} contents: {:?}"</span>, container.contents);
+                    <span class="kw">for </span><span class="kw-2">&amp;</span>content <span class="kw">in </span><span class="kw-2">&amp;</span>container.contents {
+                        <span class="kw">match </span>content {
+                            Contents::Container(id) =&gt; container_ids_to_visit.push(id),
+                            Contents::SpaceView(id) =&gt; {
+                                all_space_view_ids.push(id);
+                            }
+                        }
+                    }
+                    containers.insert(id, container);
+                } <span class="kw">else </span>{
+                    <span class="macro">re_log::warn_once!</span>(<span class="string">"Failed to load container {id}"</span>);
+                }
+            }
+        }
 
         <span class="kw">let </span>space_views: BTreeMap&lt;SpaceViewId, SpaceViewBlueprint&gt; = all_space_view_ids
             .into_iter()
@@ -1056,24 +1046,6 @@
                 SpaceViewBlueprint::try_from_db(space_view, blueprint_db, query)
             })
             .map(|sv| (sv.id, sv))
-            .collect();
-
-        <span class="kw">let </span>all_container_ids: Vec&lt;ContainerId&gt; = blueprint_db
-            .tree()
-            .children
-            .get(ContainerId::registry_part())
-            .map(|tree| {
-                tree.children
-                    .values()
-                    .map(|subtree| ContainerId::from_entity_path(<span class="kw-2">&amp;</span>subtree.path))
-                    .collect()
-            })
-            .unwrap_or_default();
-
-        <span class="kw">let </span>containers: BTreeMap&lt;ContainerId, ContainerBlueprint&gt; = all_container_ids
-            .into_iter()
-            .filter_map(|id| ContainerBlueprint::try_from_db(blueprint_db, query, id))
-            .map(|c| (c.id, c))
             .collect();
 
         <span class="comment">// Auto layouting and auto space view are only enabled if no blueprint has been provided by the user.
@@ -1085,6 +1057,12 @@
             AtomicBool::new(auto_layout.map_or(is_app_default_blueprint, |auto| <span class="kw-2">*</span>auto.<span class="number">0</span>));
         <span class="kw">let </span>auto_space_views =
             AtomicBool::new(auto_space_views.map_or(is_app_default_blueprint, |auto| <span class="kw-2">*</span>auto.<span class="number">0</span>));
+
+        <span class="kw">let </span>root_container = root_container.unwrap_or_else(|| {
+            <span class="kw">let </span>new_root_id = ContainerId::hashed_from_str(<span class="string">"placeholder_root_container"</span>);
+            containers.insert(new_root_id, ContainerBlueprint::new(new_root_id));
+            new_root_id
+        });
 
         <span class="kw">let </span>tree = build_tree_from_space_views_and_containers(
             space_views.values(),
@@ -1100,19 +1078,16 @@
             .cloned()
             .collect();
 
-        <span class="kw">let </span>root_container_or_placeholder = root_container
-            .unwrap_or_else(|| ContainerId::hashed_from_str(<span class="string">"placeholder_root_container"</span>));
-
         <span class="self">Self </span>{
             space_views,
             containers,
-            root_container: root_container_or_placeholder,
+            root_container,
             tree,
             maximized: maximized.map(|id| id.<span class="number">0</span>.into()),
             auto_layout,
             auto_space_views,
             past_viewer_recommendations,
-            tree_action_sender,
+            deferred_commands: Default::default(),
         }
     }
 
@@ -1145,36 +1120,6 @@
         <span class="self">self</span>.containers.get(container_id)
     }
 
-    <span class="kw">pub fn </span>space_view_mut(
-        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-        space_view_id: <span class="kw-2">&amp;</span>SpaceViewId,
-    ) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;mut </span>SpaceViewBlueprint&gt; {
-        <span class="self">self</span>.space_views.get_mut(space_view_id)
-    }
-
-    <span class="kw">pub fn </span>remove_space_view(<span class="kw-2">&amp;</span><span class="self">self</span>, space_view_id: <span class="kw-2">&amp;</span>SpaceViewId, ctx: <span class="kw-2">&amp;</span>ViewerContext&lt;<span class="lifetime">'_</span>&gt;) {
-        <span class="self">self</span>.mark_user_interaction(ctx);
-
-        <span class="comment">// Remove the space view from the store
-        </span><span class="kw">if let </span><span class="prelude-val">Some</span>(space_view) = <span class="self">self</span>.space_views.get(space_view_id) {
-            space_view.clear(ctx);
-        }
-
-        <span class="comment">// If the space-view was maximized, clean it up
-        </span><span class="kw">if </span><span class="self">self</span>.maximized == <span class="prelude-val">Some</span>(<span class="kw-2">*</span>space_view_id) {
-            <span class="self">self</span>.set_maximized(<span class="prelude-val">None</span>, ctx);
-        }
-
-        <span class="comment">// Filter the space-view from the included space-views
-        </span><span class="kw">let </span>components = <span class="self">self
-            </span>.space_views
-            .keys()
-            .filter(|id| id != <span class="kw-2">&amp;</span>space_view_id)
-            .map(|id| IncludedSpaceView((<span class="kw-2">*</span>id).into()))
-            .collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
-        ctx.save_blueprint_component(<span class="kw-2">&amp;</span>VIEWPORT_PATH.into(), <span class="kw-2">&amp;</span>components);
-    }
-
     <span class="doccomment">/// Duplicates a space view and its entity property overrides.
     </span><span class="kw">pub fn </span>duplicate_space_view(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
@@ -1191,7 +1136,6 @@
 
         <span class="self">self</span>.add_space_views(
             std::iter::once(new_space_view),
-            ctx,
             parent_and_pos.map(|(parent, <span class="kw">_</span>)| parent),
             parent_and_pos.map(|(<span class="kw">_</span>, pos)| pos),
         );
@@ -1243,10 +1187,8 @@
         }
     }
 
-    <span class="kw">fn </span>send_tree_action(<span class="kw-2">&amp;</span><span class="self">self</span>, action: TreeAction) {
-        <span class="kw">if </span><span class="self">self</span>.tree_action_sender.send(action).is_err() {
-            <span class="macro">re_log::warn_once!</span>(<span class="string">"Channel between ViewportBlueprint and Viewport is broken"</span>);
-        }
+    <span class="kw">fn </span>enqueue_command(<span class="kw-2">&amp;</span><span class="self">self</span>, action: ViewportCommand) {
+        <span class="self">self</span>.deferred_commands.lock().push(action);
     }
 
     <span class="kw">pub fn </span>mark_user_interaction(<span class="kw-2">&amp;</span><span class="self">self</span>, ctx: <span class="kw-2">&amp;</span>ViewerContext&lt;<span class="lifetime">'_</span>&gt;) {
@@ -1294,7 +1236,7 @@
             // If now the user edits the space view at `/**` to be `/points/**`, that does *not*
             // mean we should suddenly add `/camera/**` to the viewport.
             </span><span class="kw">if </span>!recommended_space_views.is_empty() {
-                <span class="kw">let </span>new_viewer_recommendation_hashes = <span class="self">self
+                <span class="kw">let </span>new_viewer_recommendation_hashes: Vec&lt;ViewerRecommendationHash&gt; = <span class="self">self
                     </span>.past_viewer_recommendations
                     .iter()
                     .cloned()
@@ -1303,7 +1245,7 @@
                             .iter()
                             .map(|recommendation| recommendation.recommendation_hash(class_id)),
                     )
-                    .collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
+                    .collect();
 
                 ctx.save_blueprint_component(
                     <span class="kw-2">&amp;</span>VIEWPORT_PATH.into(),
@@ -1343,7 +1285,6 @@
                 final_recommendations.map(|recommendation| {
                     SpaceViewBlueprint::new(class_id, recommendation.clone())
                 }),
-                ctx,
                 <span class="prelude-val">None</span>,
                 <span class="prelude-val">None</span>,
             );
@@ -1360,33 +1301,16 @@
     </span><span class="kw">pub fn </span>add_space_views(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         space_views: <span class="kw">impl </span>Iterator&lt;Item = SpaceViewBlueprint&gt;,
-        ctx: <span class="kw-2">&amp;</span>ViewerContext&lt;<span class="lifetime">'_</span>&gt;,
         parent_container: <span class="prelude-ty">Option</span>&lt;ContainerId&gt;,
         position_in_parent: <span class="prelude-ty">Option</span>&lt;usize&gt;,
-    ) -&gt; Vec&lt;SpaceViewId&gt; {
-        <span class="kw">let </span><span class="kw-2">mut </span>new_ids: Vec&lt;<span class="kw">_</span>&gt; = <span class="macro">vec!</span>[];
-
+    ) {
         <span class="kw">for </span>space_view <span class="kw">in </span>space_views {
-            <span class="kw">let </span>space_view_id = space_view.id;
-
-            <span class="comment">// Save the space view to the store
-            </span>space_view.save_to_blueprint_store(ctx);
-
-            <span class="comment">// Update the space-view ids:
-            </span>new_ids.push(space_view_id);
+            <span class="self">self</span>.enqueue_command(ViewportCommand::AddSpaceView {
+                space_view,
+                parent_container,
+                position_in_parent,
+            });
         }
-
-        <span class="kw">if </span>!new_ids.is_empty() {
-            <span class="kw">for </span>id <span class="kw">in </span><span class="kw-2">&amp;</span>new_ids {
-                <span class="self">self</span>.send_tree_action(TreeAction::AddSpaceView(
-                    <span class="kw-2">*</span>id,
-                    parent_container,
-                    position_in_parent,
-                ));
-            }
-        }
-
-        new_ids
     }
 
     <span class="doccomment">/// Returns an iterator over all the contents (space views and containers) in the viewport.
@@ -1541,12 +1465,15 @@
         kind: egui_tiles::ContainerKind,
         parent_container: <span class="prelude-ty">Option</span>&lt;ContainerId&gt;,
     ) {
-        <span class="self">self</span>.send_tree_action(TreeAction::AddContainer(kind, parent_container));
+        <span class="self">self</span>.enqueue_command(ViewportCommand::AddContainer {
+            container_kind: kind,
+            parent_container,
+        });
     }
 
     <span class="doccomment">/// Recursively remove a container or a space view.
     </span><span class="kw">pub fn </span>remove_contents(<span class="kw-2">&amp;</span><span class="self">self</span>, contents: Contents) {
-        <span class="self">self</span>.send_tree_action(TreeAction::RemoveContents(contents));
+        <span class="self">self</span>.enqueue_command(ViewportCommand::RemoveContents(contents));
     }
 
     <span class="doccomment">/// Move the `contents` container or space view to the specified target container and position.
@@ -1556,7 +1483,7 @@
         target_container: ContainerId,
         target_position_in_container: usize,
     ) {
-        <span class="self">self</span>.send_tree_action(TreeAction::MoveContents {
+        <span class="self">self</span>.enqueue_command(ViewportCommand::MoveContents {
             contents_to_move: contents,
             target_container,
             target_position_in_container,
@@ -1571,7 +1498,7 @@
         target_container: ContainerId,
         target_position_in_container: usize,
     ) {
-        <span class="self">self</span>.send_tree_action(TreeAction::MoveContentsToNewContainer {
+        <span class="self">self</span>.enqueue_command(ViewportCommand::MoveContentsToNewContainer {
             contents_to_move: contents,
             new_container_kind,
             target_container,
@@ -1581,7 +1508,7 @@
 
     <span class="doccomment">/// Make sure the tab corresponding to this space view is focused.
     </span><span class="kw">pub fn </span>focus_tab(<span class="kw-2">&amp;</span><span class="self">self</span>, space_view_id: SpaceViewId) {
-        <span class="self">self</span>.send_tree_action(TreeAction::FocusTab(space_view_id));
+        <span class="self">self</span>.enqueue_command(ViewportCommand::FocusTab(space_view_id));
     }
 
     <span class="doccomment">/// Set the kind of the provided container.
@@ -1593,7 +1520,7 @@
             }
         }
 
-        <span class="self">self</span>.send_tree_action(TreeAction::SetContainerKind(container_id, kind));
+        <span class="self">self</span>.enqueue_command(ViewportCommand::SetContainerKind(container_id, kind));
     }
 
     <span class="doccomment">/// Simplify the container tree with the provided options.
@@ -1602,7 +1529,7 @@
         container_id: <span class="kw-2">&amp;</span>ContainerId,
         simplification_options: SimplificationOptions,
     ) {
-        <span class="self">self</span>.send_tree_action(TreeAction::SimplifyContainer(
+        <span class="self">self</span>.enqueue_command(ViewportCommand::SimplifyContainer(
             <span class="kw-2">*</span>container_id,
             simplification_options,
         ));
@@ -1610,7 +1537,7 @@
 
     <span class="doccomment">/// Make all children of the given container the same size.
     </span><span class="kw">pub fn </span>make_all_children_same_size(<span class="kw-2">&amp;</span><span class="self">self</span>, container_id: <span class="kw-2">&amp;</span>ContainerId) {
-        <span class="self">self</span>.send_tree_action(TreeAction::MakeAllChildrenSameSize(<span class="kw-2">*</span>container_id));
+        <span class="self">self</span>.enqueue_command(ViewportCommand::MakeAllChildrenSameSize(<span class="kw-2">*</span>container_id));
     }
 
     <span class="doccomment">/// Check the visibility of the provided content.
@@ -1711,53 +1638,62 @@
             .collect()
     }
 
-    <span class="attr">#[inline]
-    </span><span class="kw">pub fn </span>set_auto_layout(<span class="kw-2">&amp;</span><span class="self">self</span>, value: bool, ctx: <span class="kw-2">&amp;</span>ViewerContext&lt;<span class="lifetime">'_</span>&gt;) {
-        <span class="kw">let </span>old_value = <span class="self">self</span>.auto_layout.swap(value, Ordering::SeqCst);
-
-        <span class="kw">if </span>old_value != value {
-            <span class="kw">let </span>component = AutoLayout::from(value);
-            ctx.save_blueprint_component(<span class="kw-2">&amp;</span>VIEWPORT_PATH.into(), <span class="kw-2">&amp;</span>component);
-        }
-    }
-
-    <span class="attr">#[inline]
+    <span class="doccomment">/// Whether the viewport layout is determined automatically.
+    ///
+    /// If `true`, we auto-layout all space-views whenever a new space-view is added.
+    ///
+    /// Set to `false` the first time the user messes around with the viewport blueprint.
+    </span><span class="attr">#[inline]
     </span><span class="kw">pub fn </span>auto_layout(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
         <span class="self">self</span>.auto_layout.load(Ordering::SeqCst)
     }
 
-    <span class="attr">#[inline]
+    <span class="doccomment">/// Whether the viewport layout is determined automatically.
+    ///
+    /// If `true`, we auto-layout all space-views whenever a new space-view is added.
+    ///
+    /// Set to `false` the first time the user messes around with the viewport blueprint.
+    </span><span class="attr">#[inline]
+    </span><span class="kw">pub fn </span>set_auto_layout(<span class="kw-2">&amp;</span><span class="self">self</span>, value: bool, ctx: <span class="kw-2">&amp;</span>ViewerContext&lt;<span class="lifetime">'_</span>&gt;) {
+        <span class="kw">let </span>old_value = <span class="self">self</span>.auto_layout.swap(value, Ordering::SeqCst);
+
+        <span class="kw">if </span>old_value != value {
+            <span class="kw">let </span>auto_layout = AutoLayout::from(value);
+            ctx.save_blueprint_component(<span class="kw-2">&amp;</span>VIEWPORT_PATH.into(), <span class="kw-2">&amp;</span>auto_layout);
+        }
+    }
+
+    <span class="doccomment">/// Whether space views should be created automatically for entities that are not already in a space.
+    </span><span class="attr">#[inline]
+    </span><span class="kw">pub fn </span>auto_space_views(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
+        <span class="self">self</span>.auto_space_views.load(Ordering::SeqCst)
+    }
+
+    <span class="doccomment">/// Whether space views should be created automatically for entities that are not already in a space.
+    </span><span class="attr">#[inline]
     </span><span class="kw">pub fn </span>set_auto_space_views(<span class="kw-2">&amp;</span><span class="self">self</span>, value: bool, ctx: <span class="kw-2">&amp;</span>ViewerContext&lt;<span class="lifetime">'_</span>&gt;) {
         <span class="kw">let </span>old_value = <span class="self">self</span>.auto_space_views.swap(value, Ordering::SeqCst);
 
         <span class="kw">if </span>old_value != value {
-            <span class="kw">let </span>component = AutoSpaceViews::from(value);
-            ctx.save_blueprint_component(<span class="kw-2">&amp;</span>VIEWPORT_PATH.into(), <span class="kw-2">&amp;</span>component);
+            <span class="kw">let </span>auto_space_views = AutoSpaceViews::from(value);
+            ctx.save_blueprint_component(<span class="kw-2">&amp;</span>VIEWPORT_PATH.into(), <span class="kw-2">&amp;</span>auto_space_views);
         }
-    }
-
-    <span class="attr">#[inline]
-    </span><span class="kw">pub fn </span>auto_space_views(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
-        <span class="self">self</span>.auto_space_views.load(Ordering::SeqCst)
     }
 
     <span class="attr">#[inline]
     </span><span class="kw">pub fn </span>set_maximized(<span class="kw-2">&amp;</span><span class="self">self</span>, space_view_id: <span class="prelude-ty">Option</span>&lt;SpaceViewId&gt;, ctx: <span class="kw-2">&amp;</span>ViewerContext&lt;<span class="lifetime">'_</span>&gt;) {
         <span class="kw">if </span><span class="self">self</span>.maximized != space_view_id {
-            <span class="kw">let </span>component_batch = space_view_id.map(|id| SpaceViewMaximized(id.into()));
-            ctx.save_blueprint_component(<span class="kw-2">&amp;</span>VIEWPORT_PATH.into(), <span class="kw-2">&amp;</span>component_batch);
+            <span class="kw">let </span>space_view_maximized = space_view_id.map(|id| SpaceViewMaximized(id.into()));
+            ctx.save_blueprint_component(<span class="kw-2">&amp;</span>VIEWPORT_PATH.into(), <span class="kw-2">&amp;</span>space_view_maximized);
         }
     }
 
     <span class="doccomment">/// Save the current state of the viewport to the blueprint store.
     /// This should only be called if the tree was edited.
-    </span><span class="kw">pub fn </span>save_tree_as_containers(
-        <span class="kw-2">&amp;</span><span class="self">self</span>,
-        tree: <span class="kw-2">&amp;</span>egui_tiles::Tree&lt;SpaceViewId&gt;,
-        ctx: <span class="kw-2">&amp;</span>ViewerContext&lt;<span class="lifetime">'_</span>&gt;,
-    ) {
+    </span><span class="kw">pub fn </span>save_tree_as_containers(<span class="kw-2">&amp;</span><span class="self">self</span>, ctx: <span class="kw-2">&amp;</span>ViewerContext&lt;<span class="lifetime">'_</span>&gt;) {
         <span class="macro">re_tracing::profile_function!</span>();
-        <span class="macro">re_log::trace!</span>(<span class="string">"Saving tree: {tree:#?}"</span>);
+
+        <span class="macro">re_log::trace!</span>(<span class="string">"Saving tree: {:#?}"</span>, <span class="self">self</span>.tree);
 
         <span class="comment">// First, update the mapping for all the previously known containers.
         // These were inserted with their ids, so we want to keep these
@@ -1769,7 +1705,7 @@
             .collect();
 
         <span class="comment">// Now, update the content mapping for all the new tiles in the tree.
-        </span><span class="kw">for </span>(tile_id, tile) <span class="kw">in </span>tree.tiles.iter() {
+        </span><span class="kw">for </span>(tile_id, tile) <span class="kw">in </span><span class="self">self</span>.tree.tiles.iter() {
             <span class="comment">// If we already know about this tile, then we don't need
             // to do anything.
             </span><span class="kw">if </span>contents_from_tile_id.contains_key(tile_id) {
@@ -1782,7 +1718,7 @@
                     </span>contents_from_tile_id.insert(<span class="kw-2">*</span>tile_id, Contents::SpaceView(<span class="kw-2">*</span>space_view_id));
                 }
                 egui_tiles::Tile::Container(container) =&gt; {
-                    <span class="kw">if </span>tree.root != <span class="prelude-val">Some</span>(<span class="kw-2">*</span>tile_id)
+                    <span class="kw">if </span><span class="self">self</span>.tree.root != <span class="prelude-val">Some</span>(<span class="kw-2">*</span>tile_id)
                         &amp;&amp; container.kind() == egui_tiles::ContainerKind::Tabs
                         &amp;&amp; container.num_children() == <span class="number">1
                     </span>{
@@ -1792,7 +1728,7 @@
                         </span><span class="kw">if let </span><span class="prelude-val">Some</span>(egui_tiles::Tile::Pane(space_view_id)) = container
                             .children()
                             .next()
-                            .and_then(|child| tree.tiles.get(<span class="kw-2">*</span>child))
+                            .and_then(|child| <span class="self">self</span>.tree.tiles.get(<span class="kw-2">*</span>child))
                         {
                             <span class="comment">// This is a trivial tab -- this tile can point directly to
                             // the SpaceView and not to a Container.
@@ -1814,7 +1750,7 @@
         // by any tiles.
         </span><span class="kw">for </span>(container_id, container) <span class="kw">in </span><span class="kw-2">&amp;</span><span class="self">self</span>.containers {
             <span class="kw">let </span>tile_id = blueprint_id_to_tile_id(container_id);
-            <span class="kw">if </span>tree.tiles.get(tile_id).is_none() {
+            <span class="kw">if </span><span class="self">self</span>.tree.tiles.get(tile_id).is_none() {
                 container.clear(ctx);
             }
         }
@@ -1822,8 +1758,9 @@
         <span class="comment">// Now save any contents that are a container back to the blueprint
         </span><span class="kw">for </span>(tile_id, contents) <span class="kw">in </span><span class="kw-2">&amp;</span>contents_from_tile_id {
             <span class="kw">if let </span>Contents::Container(container_id) = contents {
-                <span class="kw">if let </span><span class="prelude-val">Some</span>(egui_tiles::Tile::Container(container)) = tree.tiles.get(<span class="kw-2">*</span>tile_id) {
-                    <span class="kw">let </span>visible = tree.is_visible(<span class="kw-2">*</span>tile_id);
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(egui_tiles::Tile::Container(container)) = <span class="self">self</span>.tree.tiles.get(<span class="kw-2">*</span>tile_id)
+                {
+                    <span class="kw">let </span>visible = <span class="self">self</span>.tree.is_visible(<span class="kw-2">*</span>tile_id);
 
                     <span class="comment">// TODO(jleibs): Make this only update the changed fields.
                     </span><span class="kw">let </span>blueprint = ContainerBlueprint::from_egui_tiles_container(
@@ -1839,7 +1776,8 @@
         }
 
         <span class="comment">// Finally update the root
-        </span><span class="kw">if let </span><span class="prelude-val">Some</span>(root_container) = tree
+        </span><span class="kw">if let </span><span class="prelude-val">Some</span>(root_container) = <span class="self">self
+            </span>.tree
             .root()
             .and_then(|root| contents_from_tile_id.get(<span class="kw-2">&amp;</span>root))
             .and_then(|contents| contents.as_container_id())
@@ -1855,7 +1793,7 @@
 <span class="kw">fn </span>build_tree_from_space_views_and_containers&lt;<span class="lifetime">'a</span>&gt;(
     space_views: <span class="kw">impl </span>Iterator&lt;Item = <span class="kw-2">&amp;</span><span class="lifetime">'a </span>SpaceViewBlueprint&gt;,
     containers: <span class="kw">impl </span>Iterator&lt;Item = <span class="kw-2">&amp;</span><span class="lifetime">'a </span>ContainerBlueprint&gt;,
-    root_container: <span class="prelude-ty">Option</span>&lt;ContainerId&gt;,
+    root_container: ContainerId,
 ) -&gt; egui_tiles::Tree&lt;SpaceViewId&gt; {
     <span class="macro">re_tracing::profile_function!</span>();
     <span class="kw">let </span><span class="kw-2">mut </span>tree = egui_tiles::Tree::empty(<span class="string">"viewport_tree"</span>);
@@ -1878,9 +1816,7 @@
 
     <span class="comment">// And finally, set the root
 
-    </span><span class="kw">if let </span><span class="prelude-val">Some</span>(root_container) = root_container {
-        tree.root = <span class="prelude-val">Some</span>(blueprint_id_to_tile_id(<span class="kw-2">&amp;</span>root_container));
-    }
+    </span>tree.root = <span class="prelude-val">Some</span>(blueprint_id_to_tile_id(<span class="kw-2">&amp;</span>root_container));
 
     tree
 }

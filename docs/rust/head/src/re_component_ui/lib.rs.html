@@ -169,9 +169,6 @@
 <a href="#169" id="169">169</a>
 <a href="#170" id="170">170</a>
 <a href="#171" id="171">171</a>
-<a href="#172" id="172">172</a>
-<a href="#173" id="173">173</a>
-<a href="#174" id="174">174</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! This crate implements various component editors.
 //!
 //! The only entry point is [`create_component_ui_registry`], which registers all editors in the component UI registry.
@@ -218,9 +215,7 @@
     },
     Component <span class="kw">as _</span>,
 };
-<span class="kw">use </span>re_types_blueprint::blueprint::components::{
-    IncludedSpaceView, RootContainer, SpaceViewMaximized,
-};
+<span class="kw">use </span>re_types_blueprint::blueprint::components::{RootContainer, SpaceViewMaximized};
 <span class="kw">use </span>re_viewer_context::gpu_bridge::colormap_edit_or_view_ui;
 
 <span class="doccomment">/// Default number of ui points to show a number.
@@ -294,8 +289,7 @@
     registry.add_singleline_edit_or_view::&lt;Scale3D&gt;(edit_or_view_vec3d);
 
     <span class="comment">// Components that refer to views:
-    </span>registry.add_singleline_edit_or_view::&lt;IncludedSpaceView&gt;(view_view_id);
-    registry.add_singleline_edit_or_view::&lt;SpaceViewMaximized&gt;(view_view_id);
+    </span>registry.add_singleline_edit_or_view::&lt;SpaceViewMaximized&gt;(view_view_id);
 
     registry.add_singleline_edit_or_view::&lt;RootContainer&gt;(view_uuid);
 

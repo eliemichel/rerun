@@ -50,13 +50,13 @@
 
 <span class="kw">pub fn </span>add_space_view_or_container_modal_ui(
     ctx: <span class="kw-2">&amp;</span>ViewerContext&lt;<span class="lifetime">'_</span>&gt;,
-    blueprint: <span class="kw-2">&amp;</span>ViewportBlueprint,
+    viewport: <span class="kw-2">&amp;</span>ViewportBlueprint,
     ui: <span class="kw-2">&amp;</span>egui::Ui,
 ) {
     <span class="comment">// give a chance to the modal to be drawn
     </span>ADD_SPACE_VIEW_OR_CONTAINER_MODAL
         .lock()
-        .ui(ui.ctx(), ctx, blueprint);
+        .ui(ui.ctx(), ctx, viewport);
 }
 
 <span class="kw">pub fn </span>show_add_space_view_or_container_modal(target_container: ContainerId) {

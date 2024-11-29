@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["external"],"struct":["Viewport"]};
+window.SIDEBAR_ITEMS = {"mod":["external"],"struct":["ViewportUi"]};

@@ -342,7 +342,7 @@
         <span class="kw">let </span>subtitle = <span class="macro">format!</span>(<span class="string">"Create a new space view to display {title} content."</span>);
 
         <span class="kw">if </span>row_ui(ui, icon, title, <span class="kw-2">&amp;</span>subtitle).clicked() {
-            viewport.add_space_views(std::iter::once(space_view), ctx, target_container, <span class="prelude-val">None</span>);
+            viewport.add_space_views(std::iter::once(space_view), target_container, <span class="prelude-val">None</span>);
             viewport.mark_user_interaction(ctx);
             <span class="kw-2">*</span>keep_open = <span class="bool-val">false</span>;
         }

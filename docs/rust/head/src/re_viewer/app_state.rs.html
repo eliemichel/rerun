@@ -626,19 +626,6 @@
 <a href="#626" id="626">626</a>
 <a href="#627" id="627">627</a>
 <a href="#628" id="628">628</a>
-<a href="#629" id="629">629</a>
-<a href="#630" id="630">630</a>
-<a href="#631" id="631">631</a>
-<a href="#632" id="632">632</a>
-<a href="#633" id="633">633</a>
-<a href="#634" id="634">634</a>
-<a href="#635" id="635">635</a>
-<a href="#636" id="636">636</a>
-<a href="#637" id="637">637</a>
-<a href="#638" id="638">638</a>
-<a href="#639" id="639">639</a>
-<a href="#640" id="640">640</a>
-<a href="#641" id="641">641</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>ahash::HashMap;
 <span class="kw">use </span>egui::NumExt <span class="kw">as _</span>;
 
@@ -653,7 +640,7 @@
     PlayState, RecordingConfig, SpaceViewClassExt <span class="kw">as _</span>, SpaceViewClassRegistry, StoreContext,
     StoreHub, SystemCommandSender <span class="kw">as _</span>, ViewStates, ViewerContext,
 };
-<span class="kw">use </span>re_viewport::Viewport;
+<span class="kw">use </span>re_viewport::ViewportUi;
 <span class="kw">use </span>re_viewport_blueprint::ui::add_space_view_or_container_modal_ui;
 <span class="kw">use </span>re_viewport_blueprint::ViewportBlueprint;
 
@@ -698,7 +685,7 @@
     <span class="doccomment">/// Storage for the state of each `SpaceView`
     ///
     /// This is stored here for simplicity. An exclusive reference for that is passed to the users,
-    /// such as [`Viewport`] and [`re_selection_panel::SelectionPanel`].
+    /// such as [`ViewportUi`] and [`re_selection_panel::SelectionPanel`].
     </span><span class="attr">#[serde(skip)]
     </span>view_states: ViewStates,
 
@@ -811,25 +798,12 @@
         <span class="comment">// check state early, before the UI has a chance to close these popups
         </span><span class="kw">let </span>is_any_popup_open = ui.memory(|m| m.any_popup_open());
 
-        <span class="comment">// Some of the mutations APIs of `ViewportBlueprints` are recorded as `Viewport::TreeAction`
-        // and must be applied by `Viewport` at the end of the frame. We use a temporary channel for
-        // this, which gives us interior mutability (only a shared reference of `ViewportBlueprint`
-        // is available to the UI code) and, if needed in the future, concurrency.
-        </span><span class="kw">let </span>(sender, receiver) = std::sync::mpsc::channel();
-        <span class="kw">let </span>viewport_blueprint = ViewportBlueprint::try_from_db(
-            store_context.blueprint,
-            <span class="kw-2">&amp;</span>blueprint_query,
-            sender.clone(),
-        );
-        <span class="kw">let </span><span class="kw-2">mut </span>viewport = Viewport::new(
-            <span class="kw-2">&amp;</span>viewport_blueprint,
-            space_view_class_registry,
-            receiver,
-            sender,
-        );
+        <span class="kw">let </span>viewport_blueprint =
+            ViewportBlueprint::try_from_db(store_context.blueprint, <span class="kw-2">&amp;</span>blueprint_query);
+        <span class="kw">let </span>viewport_ui = ViewportUi::new(viewport_blueprint);
 
         <span class="comment">// If the blueprint is invalid, reset it.
-        </span><span class="kw">if </span>viewport.blueprint.is_invalid() {
+        </span><span class="kw">if </span>viewport_ui.blueprint.is_invalid() {
             <span class="macro">re_log::warn!</span>(<span class="string">"Incompatible blueprint detected. Resetting to default."</span>);
             command_sender.send_system(re_viewer_context::SystemCommand::ClearActiveBlueprint);
 
@@ -849,7 +823,7 @@
                     }
                 }
 
-                viewport.is_item_valid(store_context, item)
+                viewport_ui.blueprint.is_item_valid(store_context, item)
             },
             <span class="prelude-val">Some</span>(re_viewer_context::Item::StoreId(
                 store_context.recording.store_id().clone(),
@@ -864,7 +838,7 @@
         <span class="comment">// Execute the queries for every `SpaceView`
         </span><span class="kw">let </span><span class="kw-2">mut </span>query_results = {
             <span class="macro">re_tracing::profile_scope!</span>(<span class="string">"query_results"</span>);
-            viewport
+            viewport_ui
                 .blueprint
                 .space_views
                 .values()
@@ -920,12 +894,12 @@
         </span>move_time(<span class="kw-2">&amp;</span>ctx, recording, rx);
 
         <span class="comment">// Update the viewport. May spawn new views and handle queued requests (like screenshots).
-        </span>viewport.on_frame_start(<span class="kw-2">&amp;</span>ctx);
+        </span>viewport_ui.on_frame_start(<span class="kw-2">&amp;</span>ctx);
 
         {
             <span class="macro">re_tracing::profile_scope!</span>(<span class="string">"updated_query_results"</span>);
 
-            <span class="kw">for </span>space_view <span class="kw">in </span>viewport.blueprint.space_views.values() {
+            <span class="kw">for </span>space_view <span class="kw">in </span>viewport_ui.blueprint.space_views.values() {
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(query_result) = query_results.get_mut(<span class="kw-2">&amp;</span>space_view.id) {
                     <span class="comment">// TODO(andreas): This needs to be done in a store subscriber that exists per space view (instance, not class!).
                     // Note that right now we determine *all* visualizable entities, not just the queried ones.
@@ -999,7 +973,7 @@
             </span><span class="kw">if </span>app_options.inspect_blueprint_timeline {
                 blueprint_panel.show_panel(
                     <span class="kw-2">&amp;</span>ctx,
-                    <span class="kw-2">&amp;</span>viewport_blueprint,
+                    <span class="kw-2">&amp;</span>viewport_ui.blueprint,
                     ctx.store_context.blueprint,
                     blueprint_cfg,
                     ui,
@@ -1013,7 +987,7 @@
 
             </span>time_panel.show_panel(
                 <span class="kw-2">&amp;</span>ctx,
-                <span class="kw-2">&amp;</span>viewport_blueprint,
+                <span class="kw-2">&amp;</span>viewport_ui.blueprint,
                 ctx.recording(),
                 ctx.rec_cfg,
                 ui,
@@ -1026,7 +1000,7 @@
 
             </span>selection_panel.show_panel(
                 <span class="kw-2">&amp;</span>ctx,
-                <span class="kw-2">&amp;</span>viewport_blueprint,
+                <span class="kw-2">&amp;</span>viewport_ui.blueprint,
                 view_states,
                 ui,
                 app_blueprint.selection_panel_state().is_expanded(),
@@ -1081,7 +1055,7 @@
                     ui.add_space(<span class="number">4.0</span>);
 
                     <span class="kw">if </span>!show_welcome {
-                        blueprint_tree.show(<span class="kw-2">&amp;</span>ctx, <span class="kw-2">&amp;</span>viewport_blueprint, ui);
+                        blueprint_tree.show(<span class="kw-2">&amp;</span>ctx, <span class="kw-2">&amp;</span>viewport_ui.blueprint, ui);
                     }
                 },
             );
@@ -1106,7 +1080,7 @@
                             is_history_enabled,
                         );
                     } <span class="kw">else </span>{
-                        viewport.viewport_ui(ui, <span class="kw-2">&amp;</span>ctx, view_states);
+                        viewport_ui.viewport_ui(ui, <span class="kw-2">&amp;</span>ctx, view_states);
                     }
                 });
         }
@@ -1115,10 +1089,10 @@
         // Other UI things
         //
 
-        </span>add_space_view_or_container_modal_ui(<span class="kw-2">&amp;</span>ctx, <span class="kw-2">&amp;</span>viewport_blueprint, ui);
+        </span>add_space_view_or_container_modal_ui(<span class="kw-2">&amp;</span>ctx, <span class="kw-2">&amp;</span>viewport_ui.blueprint, ui);
 
-        <span class="comment">// Process deferred layout operations and apply updates back to blueprint
-        </span>viewport.update_and_sync_tile_tree_to_blueprint(<span class="kw-2">&amp;</span>ctx);
+        <span class="comment">// Process deferred layout operations and apply updates back to blueprint:
+        </span>viewport_ui.save_to_blueprint_store(<span class="kw-2">&amp;</span>ctx, space_view_class_registry);
 
         <span class="kw">if </span>WATERMARK {
             ui.ctx().paint_watermark();

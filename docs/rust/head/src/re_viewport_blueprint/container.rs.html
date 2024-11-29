@@ -422,6 +422,13 @@
 <a href="#422" id="422">422</a>
 <a href="#423" id="423">423</a>
 <a href="#424" id="424">424</a>
+<a href="#425" id="425">425</a>
+<a href="#426" id="426">426</a>
+<a href="#427" id="427">427</a>
+<a href="#428" id="428">428</a>
+<a href="#429" id="429">429</a>
+<a href="#430" id="430">430</a>
+<a href="#431" id="431">431</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>ahash::HashMap;
 <span class="kw">use </span>egui_tiles::TileId;
 
@@ -446,7 +453,7 @@
 ///
 /// The main reason this exists is to handle type conversions that aren't yet
 /// well handled by the code-generated archetypes.
-</span><span class="attr">#[derive(Debug)]
+</span><span class="attr">#[derive(Clone, Debug)]
 </span><span class="kw">pub struct </span>ContainerBlueprint {
     <span class="kw">pub </span>id: ContainerId,
     <span class="kw">pub </span>container_kind: egui_tiles::ContainerKind,
@@ -476,6 +483,13 @@
 }
 
 <span class="kw">impl </span>ContainerBlueprint {
+    <span class="kw">pub fn </span>new(id: ContainerId) -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{
+            id,
+            ..Default::default()
+        }
+    }
+
     <span class="doccomment">/// Attempt to load a [`ContainerBlueprint`] from the blueprint store.
     </span><span class="kw">pub fn </span>try_from_db(
         blueprint_db: <span class="kw-2">&amp;</span>EntityDb,

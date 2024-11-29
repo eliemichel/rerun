@@ -792,6 +792,7 @@
 <a href="#792" id="792">792</a>
 <a href="#793" id="793">793</a>
 <a href="#794" id="794">794</a>
+<a href="#795" id="795">795</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::sync::Arc;
 
 <span class="kw">use </span>ahash::HashMap;
@@ -827,6 +828,7 @@
 ///
 /// If you want a new space view otherwise identical to an existing one, use
 /// `re_viewport::ViewportBlueprint::duplicate_space_view`.
+</span><span class="attr">#[derive(Clone, Debug)]
 </span><span class="kw">pub struct </span>SpaceViewBlueprint {
     <span class="kw">pub </span>id: SpaceViewId,
     <span class="kw">pub </span>display_name: <span class="prelude-ty">Option</span>&lt;String&gt;,

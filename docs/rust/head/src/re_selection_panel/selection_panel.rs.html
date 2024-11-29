@@ -1291,7 +1291,7 @@
     <span class="kw">pub fn </span>show_panel(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         ctx: <span class="kw-2">&amp;</span>ViewerContext&lt;<span class="lifetime">'_</span>&gt;,
-        blueprint: <span class="kw-2">&amp;</span>ViewportBlueprint,
+        viewport: <span class="kw-2">&amp;</span>ViewportBlueprint,
         view_states: <span class="kw-2">&amp;mut </span>ViewStates,
         ui: <span class="kw-2">&amp;mut </span>egui::Ui,
         expanded: bool,
@@ -1319,7 +1319,7 @@
                     <span class="kw">let </span><span class="kw-2">mut </span>history = ctx.selection_state().history.lock();
                     <span class="kw">if let </span><span class="prelude-val">Some</span>(selection) =
                         <span class="self">self</span>.selection_state_ui
-                            .selection_ui(ui, blueprint, <span class="kw-2">&amp;mut </span>history)
+                            .selection_ui(ui, viewport, <span class="kw-2">&amp;mut </span>history)
                     {
                         ctx.selection_state().set_selection(selection);
                     }
@@ -1335,20 +1335,20 @@
                 .show(ui, |ui| {
                     ui.add_space(ui.spacing().item_spacing.y);
                     ui.panel_content(|ui| {
-                        <span class="self">self</span>.contents(ctx, blueprint, view_states, ui);
+                        <span class="self">self</span>.contents(ctx, viewport, view_states, ui);
                     });
                 });
         });
 
         <span class="comment">// run modals (these are noop if the modals are not active)
-        </span><span class="self">self</span>.space_view_entity_modal.ui(ui.ctx(), ctx, blueprint);
+        </span><span class="self">self</span>.space_view_entity_modal.ui(ui.ctx(), ctx, viewport);
     }
 
     <span class="attr">#[allow(clippy::unused_self)]
     </span><span class="kw">fn </span>contents(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         ctx: <span class="kw-2">&amp;</span>ViewerContext&lt;<span class="lifetime">'_</span>&gt;,
-        blueprint: <span class="kw-2">&amp;</span>ViewportBlueprint,
+        viewport: <span class="kw-2">&amp;</span>ViewportBlueprint,
         view_states: <span class="kw-2">&amp;mut </span>ViewStates,
         ui: <span class="kw-2">&amp;mut </span>egui::Ui,
     ) {
@@ -1369,7 +1369,7 @@
         };
         <span class="kw">for </span>(i, item) <span class="kw">in </span>selection.iter_items().enumerate() {
             list_item::list_item_scope(ui, item, |ui| {
-                <span class="self">self</span>.item_ui(ctx, blueprint, view_states, ui, item, ui_layout);
+                <span class="self">self</span>.item_ui(ctx, viewport, view_states, ui, item, ui_layout);
             });
 
             <span class="kw">if </span>i &lt; selection.len() - <span class="number">1 </span>{
@@ -1382,13 +1382,13 @@
     <span class="kw">fn </span>item_ui(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         ctx: <span class="kw-2">&amp;</span>ViewerContext&lt;<span class="lifetime">'_</span>&gt;,
-        blueprint: <span class="kw-2">&amp;</span>ViewportBlueprint,
+        viewport: <span class="kw-2">&amp;</span>ViewportBlueprint,
         view_states: <span class="kw-2">&amp;mut </span>ViewStates,
         ui: <span class="kw-2">&amp;mut </span>egui::Ui,
         item: <span class="kw-2">&amp;</span>Item,
         ui_layout: UiLayout,
     ) {
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(item_title) = item_tile(ctx, blueprint, ui.style(), item) {
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(item_title) = item_tile(ctx, viewport, ui.style(), item) {
             item_title.show(ctx, ui, item);
         } <span class="kw">else </span>{
             <span class="kw">return</span>; <span class="comment">// WEIRD
@@ -1419,7 +1419,7 @@
                     },
                 ));
 
-                list_existing_data_blueprints(ctx, blueprint, ui, <span class="kw-2">&amp;</span>entity_path.clone().into());
+                list_existing_data_blueprints(ctx, viewport, ui, <span class="kw-2">&amp;</span>entity_path.clone().into());
             }
 
             Item::InstancePath(instance_path) =&gt; {
@@ -1444,22 +1444,22 @@
                     }
                 }
 
-                list_existing_data_blueprints(ctx, blueprint, ui, instance_path);
+                list_existing_data_blueprints(ctx, viewport, ui, instance_path);
             }
 
             Item::Container(container_id) =&gt; {
-                container_top_level_properties(ctx, blueprint, ui, container_id);
-                container_children(ctx, blueprint, ui, container_id);
+                container_top_level_properties(ctx, viewport, ui, container_id);
+                container_children(ctx, viewport, ui, container_id);
             }
 
             Item::SpaceView(view_id) =&gt; {
-                <span class="kw">if let </span><span class="prelude-val">Some</span>(view) = blueprint.view(view_id) {
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(view) = viewport.view(view_id) {
                     view_top_level_properties(ctx, ui, view);
                 }
             }
 
             Item::DataResult(view_id, instance_path) =&gt; {
-                <span class="kw">if let </span><span class="prelude-val">Some</span>(view) = blueprint.view(view_id) {
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(view) = viewport.view(view_id) {
                     <span class="kw">let </span>is_instance = !instance_path.instance.is_all();
                     <span class="kw">let </span>parent = <span class="kw">if </span>is_instance {
                         <span class="prelude-val">Some</span>(instance_path.entity_path.clone())
@@ -1522,7 +1522,7 @@
                         .cloned();
 
                     <span class="kw">if let </span><span class="prelude-val">Some</span>(data_result) = <span class="kw-2">&amp;</span>data_result {
-                        <span class="kw">if let </span><span class="prelude-val">Some</span>(view) = blueprint.view(view_id) {
+                        <span class="kw">if let </span><span class="prelude-val">Some</span>(view) = viewport.view(view_id) {
                             visible_interactive_toggle_ui(
                                 <span class="kw-2">&amp;</span>view.bundle_context_with_states(ctx, view_states),
                                 ui,
@@ -1553,7 +1553,7 @@
 
         <span class="kw">match </span>item {
             Item::SpaceView(view_id) =&gt; {
-                <span class="self">self</span>.view_selection_ui(ctx, ui, blueprint, view_id, view_states);
+                <span class="self">self</span>.view_selection_ui(ctx, ui, viewport, view_id, view_states);
             }
 
             Item::DataResult(view_id, instance_path) =&gt; {
@@ -1562,7 +1562,7 @@
                         ctx,
                         ui,
                         <span class="kw-2">&amp;</span>instance_path.entity_path,
-                        blueprint,
+                        viewport,
                         view_id,
                         view_states,
                     );
@@ -1578,7 +1578,7 @@
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         ctx: <span class="kw-2">&amp;</span>ViewerContext&lt;<span class="lifetime">'_</span>&gt;,
         ui: <span class="kw-2">&amp;mut </span>egui::Ui,
-        blueprint: <span class="kw-2">&amp;</span>ViewportBlueprint,
+        viewport: <span class="kw-2">&amp;</span>ViewportBlueprint,
         view_id: <span class="kw-2">&amp;</span>SpaceViewId,
         view_states: <span class="kw-2">&amp;mut </span>ViewStates,
     ) {
@@ -1619,9 +1619,9 @@ The last rule matching `/world/house` is `+ /world/**`, so it is included.
     "#
         </span>.trim();
 
-        clone_space_view_button_ui(ctx, ui, blueprint, <span class="kw-2">*</span>view_id);
+        clone_space_view_button_ui(ctx, ui, viewport, <span class="kw-2">*</span>view_id);
 
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(view) = blueprint.view(view_id) {
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(view) = viewport.view(view_id) {
             ui.section_collapsing_header(<span class="string">"Entity path filter"</span>)
                 .button(
                     list_item::ItemActionButton::new(<span class="kw-2">&amp;</span>re_ui::icons::EDIT, || {
@@ -1652,7 +1652,7 @@ The last rule matching `/world/house` is `+ /world/**`, so it is included.
                 );
         }
 
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(view) = blueprint.view(view_id) {
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(view) = viewport.view(view_id) {
             <span class="kw">let </span>view_class = view.class(ctx.space_view_class_registry);
             <span class="kw">let </span>view_state = view_states.get_mut_or_create(view.id, view_class);
 
@@ -1690,7 +1690,7 @@ The last rule matching `/world/house` is `+ /world/**`, so it is included.
     ctx: <span class="kw-2">&amp;</span>ViewerContext&lt;<span class="lifetime">'_</span>&gt;,
     ui: <span class="kw-2">&amp;mut </span>egui::Ui,
     entity_path: <span class="kw-2">&amp;</span>EntityPath,
-    blueprint: <span class="kw-2">&amp;</span>ViewportBlueprint,
+    viewport: <span class="kw-2">&amp;</span>ViewportBlueprint,
     view_id: <span class="kw-2">&amp;</span>SpaceViewId,
     view_states: <span class="kw-2">&amp;mut </span>ViewStates,
 ) {
@@ -1700,7 +1700,7 @@ The last rule matching `/world/house` is `+ /world/**`, so it is included.
         .lookup_result_by_path(entity_path)
         .cloned();
 
-    <span class="kw">if let </span><span class="prelude-val">Some</span>(view) = blueprint.space_views.get(view_id) {
+    <span class="kw">if let </span><span class="prelude-val">Some</span>(view) = viewport.view(view_id) {
         <span class="kw">let </span>view_ctx = view.bundle_context_with_states(ctx, view_states);
         visualizer_ui(<span class="kw-2">&amp;</span>view_ctx, view, entity_path, ui);
     }
@@ -1713,16 +1713,16 @@ The last rule matching `/world/house` is `+ /world/**`, so it is included.
 <span class="kw">fn </span>clone_space_view_button_ui(
     ctx: <span class="kw-2">&amp;</span>ViewerContext&lt;<span class="lifetime">'_</span>&gt;,
     ui: <span class="kw-2">&amp;mut </span>egui::Ui,
-    blueprint: <span class="kw-2">&amp;</span>ViewportBlueprint,
+    viewport: <span class="kw-2">&amp;</span>ViewportBlueprint,
     view_id: SpaceViewId,
 ) {
     ui.list_item_flat_noninteractive(
         list_item::ButtonContent::new(<span class="string">"Clone this view"</span>)
             .on_click(|| {
-                <span class="kw">if let </span><span class="prelude-val">Some</span>(new_space_view_id) = blueprint.duplicate_space_view(<span class="kw-2">&amp;</span>view_id, ctx) {
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(new_space_view_id) = viewport.duplicate_space_view(<span class="kw-2">&amp;</span>view_id, ctx) {
                     ctx.selection_state()
                         .set_selection(Item::SpaceView(new_space_view_id));
-                    blueprint.mark_user_interaction(ctx);
+                    viewport.mark_user_interaction(ctx);
                 }
             })
             .hover_text(<span class="string">"Create an exact duplicate of this view including all blueprint settings"</span>),
@@ -1825,18 +1825,18 @@ The last rule matching `/world/house` is `+ /world/**`, so it is included.
 
 <span class="kw">fn </span>container_children(
     ctx: <span class="kw-2">&amp;</span>ViewerContext&lt;<span class="lifetime">'_</span>&gt;,
-    blueprint: <span class="kw-2">&amp;</span>ViewportBlueprint,
+    viewport: <span class="kw-2">&amp;</span>ViewportBlueprint,
     ui: <span class="kw-2">&amp;mut </span>egui::Ui,
     container_id: <span class="kw-2">&amp;</span>ContainerId,
 ) {
-    <span class="kw">let </span><span class="prelude-val">Some</span>(container) = blueprint.container(container_id) <span class="kw">else </span>{
+    <span class="kw">let </span><span class="prelude-val">Some</span>(container) = viewport.container(container_id) <span class="kw">else </span>{
         <span class="kw">return</span>;
     };
 
     <span class="kw">let </span>show_content = |ui: <span class="kw-2">&amp;mut </span>egui::Ui| {
         <span class="kw">let </span><span class="kw-2">mut </span>has_child = <span class="bool-val">false</span>;
         <span class="kw">for </span>child_contents <span class="kw">in </span><span class="kw-2">&amp;</span>container.contents {
-            has_child |= show_list_item_for_container_child(ctx, blueprint, ui, child_contents);
+            has_child |= show_list_item_for_container_child(ctx, viewport, ui, child_contents);
         }
 
         <span class="kw">if </span>!has_child {
@@ -1895,7 +1895,7 @@ The last rule matching `/world/house` is `+ /world/**`, so it is included.
 
 <span class="kw">fn </span>item_tile(
     ctx: <span class="kw-2">&amp;</span>ViewerContext&lt;<span class="lifetime">'_</span>&gt;,
-    blueprint: <span class="kw-2">&amp;</span>ViewportBlueprint,
+    viewport: <span class="kw-2">&amp;</span>ViewportBlueprint,
     style: <span class="kw-2">&amp;</span>egui::Style,
     item: <span class="kw-2">&amp;</span>Item,
 ) -&gt; <span class="prelude-ty">Option</span>&lt;ItemTitle&gt; {
@@ -1937,7 +1937,7 @@ The last rule matching `/world/house` is `+ /world/**`, so it is included.
         }
 
         Item::Container(container_id) =&gt; {
-            <span class="kw">if let </span><span class="prelude-val">Some</span>(container_blueprint) = blueprint.container(container_id) {
+            <span class="kw">if let </span><span class="prelude-val">Some</span>(container_blueprint) = viewport.container(container_id) {
                 <span class="kw">let </span>hover_text =
                     <span class="kw">if let </span><span class="prelude-val">Some</span>(display_name) = container_blueprint.display_name.as_ref() {
                         <span class="macro">format!</span>(
@@ -1989,7 +1989,7 @@ The last rule matching `/world/house` is `+ /world/**`, so it is included.
         }
 
         Item::SpaceView(view_id) =&gt; {
-            <span class="kw">if let </span><span class="prelude-val">Some</span>(view) = blueprint.view(view_id) {
+            <span class="kw">if let </span><span class="prelude-val">Some</span>(view) = viewport.view(view_id) {
                 <span class="kw">let </span>view_class = view.class(ctx.space_view_class_registry);
 
                 <span class="kw">let </span>hover_text = <span class="kw">if let </span><span class="prelude-val">Some</span>(display_name) = view.display_name.as_ref() {
@@ -2029,7 +2029,7 @@ The last rule matching `/world/house` is `+ /world/**`, so it is included.
         Item::DataResult(view_id, instance_path) =&gt; {
             <span class="kw">let </span>name = instance_path.syntax_highlighted(style);
 
-            <span class="kw">if let </span><span class="prelude-val">Some</span>(view) = blueprint.view(view_id) {
+            <span class="kw">if let </span><span class="prelude-val">Some</span>(view) = viewport.view(view_id) {
                 <span class="kw">let </span>typ = item.kind();
                 <span class="prelude-val">Some</span>(
                     ItemTitle::new(name)
@@ -2122,12 +2122,12 @@ The last rule matching `/world/house` is `+ /world/**`, so it is included.
 <span class="doccomment">/// Display a list of all the views an entity appears in.
 </span><span class="kw">fn </span>list_existing_data_blueprints(
     ctx: <span class="kw-2">&amp;</span>ViewerContext&lt;<span class="lifetime">'_</span>&gt;,
-    blueprint: <span class="kw-2">&amp;</span>ViewportBlueprint,
+    viewport: <span class="kw-2">&amp;</span>ViewportBlueprint,
     ui: <span class="kw-2">&amp;mut </span>egui::Ui,
     instance_path: <span class="kw-2">&amp;</span>InstancePath,
 ) {
     <span class="kw">let </span>space_views_with_path =
-        blueprint.space_views_containing_entity_path(ctx, <span class="kw-2">&amp;</span>instance_path.entity_path);
+        viewport.space_views_containing_entity_path(ctx, <span class="kw-2">&amp;</span>instance_path.entity_path);
 
     <span class="kw">let </span>(query, db) = guess_query_and_db_for_selected_entity(ctx, <span class="kw-2">&amp;</span>instance_path.entity_path);
 
@@ -2135,7 +2135,7 @@ The last rule matching `/world/house` is `+ /world/**`, so it is included.
         ui.weak(<span class="string">"(Not shown in any view)"</span>);
     } <span class="kw">else </span>{
         <span class="kw">for </span><span class="kw-2">&amp;</span>view_id <span class="kw">in </span><span class="kw-2">&amp;</span>space_views_with_path {
-            <span class="kw">if let </span><span class="prelude-val">Some</span>(view) = blueprint.view(<span class="kw-2">&amp;</span>view_id) {
+            <span class="kw">if let </span><span class="prelude-val">Some</span>(view) = viewport.view(<span class="kw-2">&amp;</span>view_id) {
                 <span class="kw">let </span>response = ui.list_item().show_flat(
                     ui,
                     PropertyContent::new(<span class="string">"Shown in"</span>).value_fn(|ui, <span class="kw">_</span>| {
@@ -2208,11 +2208,11 @@ The last rule matching `/world/house` is `+ /world/**`, so it is included.
 
 <span class="kw">fn </span>container_top_level_properties(
     ctx: <span class="kw-2">&amp;</span>ViewerContext&lt;<span class="lifetime">'_</span>&gt;,
-    blueprint: <span class="kw-2">&amp;</span>ViewportBlueprint,
+    viewport: <span class="kw-2">&amp;</span>ViewportBlueprint,
     ui: <span class="kw-2">&amp;mut </span>egui::Ui,
     container_id: <span class="kw-2">&amp;</span>ContainerId,
 ) {
-    <span class="kw">let </span><span class="prelude-val">Some</span>(container) = blueprint.container(container_id) <span class="kw">else </span>{
+    <span class="kw">let </span><span class="prelude-val">Some</span>(container) = viewport.container(container_id) <span class="kw">else </span>{
         <span class="kw">return</span>;
     };
 
@@ -2230,7 +2230,7 @@ The last rule matching `/world/house` is `+ /world/**`, so it is included.
     ui.list_item_flat_noninteractive(PropertyContent::new(<span class="string">"Kind"</span>).value_fn(|ui, <span class="kw">_</span>| {
         <span class="kw">let </span><span class="kw-2">mut </span>container_kind = container.container_kind;
         container_kind_selection_ui(ui, <span class="kw-2">&amp;mut </span>container_kind);
-        blueprint.set_container_kind(<span class="kw-2">*</span>container_id, container_kind);
+        viewport.set_container_kind(<span class="kw-2">*</span>container_id, container_kind);
     }));
 
     <span class="kw">if </span>container.container_kind == ContainerKind::Grid {
@@ -2267,7 +2267,7 @@ The last rule matching `/world/house` is `+ /world/**`, so it is included.
     ui.list_item_flat_noninteractive(
         list_item::ButtonContent::new(<span class="string">"Simplify hierarchy"</span>)
             .on_click(|| {
-                blueprint.simplify_container(
+                viewport.simplify_container(
                     container_id,
                     egui_tiles::SimplificationOptions {
                         prune_empty_tabs: <span class="bool-val">true</span>,
@@ -2298,7 +2298,7 @@ The last rule matching `/world/house` is `+ /world/**`, so it is included.
         ui.list_item_flat_noninteractive(
             list_item::ButtonContent::new(<span class="string">"Distribute content equally"</span>)
                 .on_click(|| {
-                    blueprint.make_all_children_same_size(container_id);
+                    viewport.make_all_children_same_size(container_id);
                 })
                 .enabled(!all_shares_are_equal)
                 .hover_text(<span class="string">"Make all children the same size"</span>),
@@ -2335,14 +2335,14 @@ The last rule matching `/world/house` is `+ /world/**`, so it is included.
 /// Return true if successful.
 </span><span class="kw">fn </span>show_list_item_for_container_child(
     ctx: <span class="kw-2">&amp;</span>ViewerContext&lt;<span class="lifetime">'_</span>&gt;,
-    blueprint: <span class="kw-2">&amp;</span>ViewportBlueprint,
+    viewport: <span class="kw-2">&amp;</span>ViewportBlueprint,
     ui: <span class="kw-2">&amp;mut </span>egui::Ui,
     child_contents: <span class="kw-2">&amp;</span>Contents,
 ) -&gt; bool {
     <span class="kw">let </span><span class="kw-2">mut </span>remove_contents = <span class="bool-val">false</span>;
     <span class="kw">let </span>(item, list_item_content) = <span class="kw">match </span>child_contents {
         Contents::SpaceView(view_id) =&gt; {
-            <span class="kw">let </span><span class="prelude-val">Some</span>(view) = blueprint.view(view_id) <span class="kw">else </span>{
+            <span class="kw">let </span><span class="prelude-val">Some</span>(view) = viewport.view(view_id) <span class="kw">else </span>{
                 <span class="macro">re_log::warn_once!</span>(<span class="string">"Could not find view with ID {view_id:?}"</span>,);
                 <span class="kw">return </span><span class="bool-val">false</span>;
             };
@@ -2367,7 +2367,7 @@ The last rule matching `/world/house` is `+ /world/**`, so it is included.
             )
         }
         Contents::Container(container_id) =&gt; {
-            <span class="kw">let </span><span class="prelude-val">Some</span>(container) = blueprint.container(container_id) <span class="kw">else </span>{
+            <span class="kw">let </span><span class="prelude-val">Some</span>(container) = viewport.container(container_id) <span class="kw">else </span>{
                 <span class="macro">re_log::warn_once!</span>(<span class="string">"Could not find container with ID {container_id:?}"</span>,);
                 <span class="kw">return </span><span class="bool-val">false</span>;
             };
@@ -2404,7 +2404,7 @@ The last rule matching `/world/house` is `+ /world/**`, so it is included.
 
     context_menu_ui_for_item(
         ctx,
-        blueprint,
+        viewport,
         <span class="kw-2">&amp;</span>item,
         <span class="kw-2">&amp;</span>response,
         SelectionUpdateBehavior::Ignore,
@@ -2412,8 +2412,8 @@ The last rule matching `/world/house` is `+ /world/**`, so it is included.
     ctx.select_hovered_on_click(<span class="kw-2">&amp;</span>response, item);
 
     <span class="kw">if </span>remove_contents {
-        blueprint.mark_user_interaction(ctx);
-        blueprint.remove_contents(<span class="kw-2">*</span>child_contents);
+        viewport.mark_user_interaction(ctx);
+        viewport.remove_contents(<span class="kw-2">*</span>child_contents);
     }
 
     <span class="bool-val">true

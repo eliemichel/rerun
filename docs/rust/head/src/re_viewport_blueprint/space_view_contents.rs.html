@@ -726,6 +726,7 @@
 <a href="#726" id="726">726</a>
 <a href="#727" id="727">727</a>
 <a href="#728" id="728">728</a>
+<a href="#729" id="729">729</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>nohash_hasher::IntMap;
 <span class="kw">use </span>slotmap::SlotMap;
 <span class="kw">use </span>smallvec::SmallVec;
@@ -762,6 +763,7 @@
 ///
 /// If you want a new space view otherwise identical to an existing one, use
 /// [`SpaceViewBlueprint::duplicate`].
+</span><span class="attr">#[derive(Clone, Debug)]
 </span><span class="kw">pub struct </span>SpaceViewContents {
     <span class="kw">pub </span>blueprint_entity_path: EntityPath,
 

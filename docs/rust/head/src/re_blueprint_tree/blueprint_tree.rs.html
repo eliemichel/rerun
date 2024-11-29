@@ -1053,8 +1053,6 @@
 <a href="#1053" id="1053">1053</a>
 <a href="#1054" id="1054">1054</a>
 <a href="#1055" id="1055">1055</a>
-<a href="#1056" id="1056">1056</a>
-<a href="#1057" id="1057">1057</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>egui::{Response, Ui};
 <span class="kw">use </span>itertools::Itertools;
 <span class="kw">use </span>re_data_ui::item_ui::guess_instance_path_icon;
@@ -1131,7 +1129,7 @@
     </span><span class="kw">pub fn </span>show(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         ctx: <span class="kw-2">&amp;</span>ViewerContext&lt;<span class="lifetime">'_</span>&gt;,
-        blueprint: <span class="kw-2">&amp;</span>ViewportBlueprint,
+        viewport: <span class="kw-2">&amp;</span>ViewportBlueprint,
         ui: <span class="kw-2">&amp;mut </span>egui::Ui,
     ) {
         ui.panel_content(|ui| {
@@ -1139,7 +1137,7 @@
                 <span class="string">"Blueprint"</span>,
                 <span class="prelude-val">Some</span>(<span class="string">"The blueprint is where you can configure the Rerun Viewer"</span>),
                 |ui| {
-                    <span class="self">self</span>.add_new_spaceview_button_ui(ctx, blueprint, ui);
+                    <span class="self">self</span>.add_new_spaceview_button_ui(ctx, viewport, ui);
                     reset_blueprint_button_ui(ctx, ui);
                 },
             );
@@ -1147,14 +1145,14 @@
 
         <span class="comment">// This call is excluded from `panel_content` because it has a ScrollArea, which should not be
         // inset. Instead, it calls panel_content itself inside the ScrollArea.
-        </span><span class="self">self</span>.tree_ui(ctx, blueprint, ui);
+        </span><span class="self">self</span>.tree_ui(ctx, viewport, ui);
     }
 
     <span class="doccomment">/// Show the blueprint panel tree view.
     </span><span class="kw">fn </span>tree_ui(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         ctx: <span class="kw-2">&amp;</span>ViewerContext&lt;<span class="lifetime">'_</span>&gt;,
-        blueprint: <span class="kw-2">&amp;</span>ViewportBlueprint,
+        viewport: <span class="kw-2">&amp;</span>ViewportBlueprint,
         ui: <span class="kw-2">&amp;mut </span>egui::Ui,
     ) {
         <span class="macro">re_tracing::profile_function!</span>();
@@ -1171,10 +1169,10 @@
                     <span class="self">self</span>.blueprint_tree_scroll_to_item = ctx
                         .focused_item
                         .as_ref()
-                        .and_then(|item| handle_focused_item(ctx, blueprint, ui, item));
+                        .and_then(|item| handle_focused_item(ctx, viewport, ui, item));
 
                     list_item::list_item_scope(ui, <span class="string">"blueprint tree"</span>, |ui| {
-                        <span class="self">self</span>.root_container_tree_ui(ctx, blueprint, ui);
+                        <span class="self">self</span>.root_container_tree_ui(ctx, viewport, ui);
                     });
 
                     <span class="kw">let </span>empty_space_response =
@@ -1187,7 +1185,7 @@
 
                     <span class="comment">// handle drag and drop interaction on empty space
                     </span><span class="self">self</span>.handle_empty_space_drag_and_drop_interaction(
-                        blueprint,
+                        viewport,
                         ui,
                         empty_space_response.rect,
                     );
@@ -1216,17 +1214,17 @@
     <span class="kw">fn </span>contents_ui(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         ctx: <span class="kw-2">&amp;</span>ViewerContext&lt;<span class="lifetime">'_</span>&gt;,
-        blueprint: <span class="kw-2">&amp;</span>ViewportBlueprint,
+        viewport: <span class="kw-2">&amp;</span>ViewportBlueprint,
         ui: <span class="kw-2">&amp;mut </span>egui::Ui,
         contents: <span class="kw-2">&amp;</span>Contents,
         parent_visible: bool,
     ) {
         <span class="kw">match </span>contents {
             Contents::Container(container_id) =&gt; {
-                <span class="self">self</span>.container_tree_ui(ctx, blueprint, ui, container_id, parent_visible);
+                <span class="self">self</span>.container_tree_ui(ctx, viewport, ui, container_id, parent_visible);
             }
             Contents::SpaceView(space_view_id) =&gt; {
-                <span class="self">self</span>.space_view_entry_ui(ctx, blueprint, ui, space_view_id, parent_visible);
+                <span class="self">self</span>.space_view_entry_ui(ctx, viewport, ui, space_view_id, parent_visible);
             }
         };
     }
@@ -1238,15 +1236,13 @@
     </span><span class="kw">fn </span>root_container_tree_ui(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         ctx: <span class="kw-2">&amp;</span>ViewerContext&lt;<span class="lifetime">'_</span>&gt;,
-        blueprint: <span class="kw-2">&amp;</span>ViewportBlueprint,
+        viewport: <span class="kw-2">&amp;</span>ViewportBlueprint,
         ui: <span class="kw-2">&amp;mut </span>egui::Ui,
     ) {
-        <span class="kw">let </span>container_id = blueprint.root_container;
+        <span class="kw">let </span>container_id = viewport.root_container;
 
-        <span class="kw">let </span><span class="prelude-val">Some</span>(container_blueprint) = blueprint.containers.get(<span class="kw-2">&amp;</span>container_id) <span class="kw">else </span>{
-            <span class="comment">// This happens after a blueprint reset (or there was no blueprint).
-            // TODO(#8056): refactor all of this
-            </span><span class="macro">re_log::debug!</span>(<span class="string">"Cannot find root {container_id} in BlueprintTree (b/c recent reset?)"</span>);
+        <span class="kw">let </span><span class="prelude-val">Some</span>(container_blueprint) = viewport.container(<span class="kw-2">&amp;</span>container_id) <span class="kw">else </span>{
+            <span class="macro">re_log::warn!</span>(<span class="string">"Failed to find root container {container_id} in ViewportBlueprint"</span>);
             <span class="kw">return</span>;
         };
 
@@ -1266,12 +1262,12 @@
             );
 
         <span class="kw">for </span>child <span class="kw">in </span><span class="kw-2">&amp;</span>container_blueprint.contents {
-            <span class="self">self</span>.contents_ui(ctx, blueprint, ui, child, <span class="bool-val">true</span>);
+            <span class="self">self</span>.contents_ui(ctx, viewport, ui, child, <span class="bool-val">true</span>);
         }
 
         context_menu_ui_for_item(
             ctx,
-            blueprint,
+            viewport,
             <span class="kw-2">&amp;</span>item,
             <span class="kw-2">&amp;</span>item_response,
             SelectionUpdateBehavior::UseSelection,
@@ -1280,7 +1276,7 @@
         ctx.select_hovered_on_click(<span class="kw-2">&amp;</span>item_response, item);
 
         <span class="self">self</span>.handle_root_container_drag_and_drop_interaction(
-            blueprint,
+            viewport,
             ui,
             Contents::Container(container_id),
             <span class="kw-2">&amp;</span>item_response,
@@ -1290,7 +1286,7 @@
     <span class="kw">fn </span>container_tree_ui(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         ctx: <span class="kw-2">&amp;</span>ViewerContext&lt;<span class="lifetime">'_</span>&gt;,
-        blueprint: <span class="kw-2">&amp;</span>ViewportBlueprint,
+        viewport: <span class="kw-2">&amp;</span>ViewportBlueprint,
         ui: <span class="kw-2">&amp;mut </span>egui::Ui,
         container_id: <span class="kw-2">&amp;</span>ContainerId,
         parent_visible: bool,
@@ -1298,7 +1294,7 @@
         <span class="kw">let </span>item = Item::Container(<span class="kw-2">*</span>container_id);
         <span class="kw">let </span>content = Contents::Container(<span class="kw-2">*</span>container_id);
 
-        <span class="kw">let </span><span class="prelude-val">Some</span>(container_blueprint) = blueprint.containers.get(container_id) <span class="kw">else </span>{
+        <span class="kw">let </span><span class="prelude-val">Some</span>(container_blueprint) = viewport.container(container_id) <span class="kw">else </span>{
             <span class="macro">re_log::warn_once!</span>(<span class="string">"Ignoring unknown container {container_id}"</span>);
             <span class="kw">return</span>;
         };
@@ -1319,8 +1315,8 @@
 
                 <span class="kw">let </span>remove_response = remove_button_ui(ui, <span class="string">"Remove container"</span>);
                 <span class="kw">if </span>remove_response.clicked() {
-                    blueprint.mark_user_interaction(ctx);
-                    blueprint.remove_contents(content);
+                    viewport.mark_user_interaction(ctx);
+                    viewport.remove_contents(content);
                 }
 
                 remove_response | vis_response
@@ -1341,7 +1337,7 @@
             .drop_target_style(<span class="self">self</span>.is_candidate_drop_parent_container(container_id))
             .show_hierarchical_with_children(ui, id, default_open, item_content, |ui| {
                 <span class="kw">for </span>child <span class="kw">in </span><span class="kw-2">&amp;</span>container_blueprint.contents {
-                    <span class="self">self</span>.contents_ui(ctx, blueprint, ui, child, container_visible);
+                    <span class="self">self</span>.contents_ui(ctx, viewport, ui, child, container_visible);
                 }
             });
 
@@ -1352,7 +1348,7 @@
 
         context_menu_ui_for_item(
             ctx,
-            blueprint,
+            viewport,
             <span class="kw-2">&amp;</span>item,
             <span class="kw-2">&amp;</span>response,
             SelectionUpdateBehavior::UseSelection,
@@ -1360,11 +1356,11 @@
         <span class="self">self</span>.scroll_to_me_if_needed(ui, <span class="kw-2">&amp;</span>item, <span class="kw-2">&amp;</span>response);
         ctx.select_hovered_on_click(<span class="kw-2">&amp;</span>response, item);
 
-        blueprint.set_content_visibility(ctx, <span class="kw-2">&amp;</span>content, visible);
+        viewport.set_content_visibility(ctx, <span class="kw-2">&amp;</span>content, visible);
 
         <span class="self">self</span>.handle_drag_and_drop_interaction(
             ctx,
-            blueprint,
+            viewport,
             ui,
             content,
             <span class="kw-2">&amp;</span>response,
@@ -1375,12 +1371,12 @@
     <span class="kw">fn </span>space_view_entry_ui(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         ctx: <span class="kw-2">&amp;</span>ViewerContext&lt;<span class="lifetime">'_</span>&gt;,
-        blueprint: <span class="kw-2">&amp;</span>ViewportBlueprint,
+        viewport: <span class="kw-2">&amp;</span>ViewportBlueprint,
         ui: <span class="kw-2">&amp;mut </span>egui::Ui,
         space_view_id: <span class="kw-2">&amp;</span>SpaceViewId,
         container_visible: bool,
     ) {
-        <span class="kw">let </span><span class="prelude-val">Some</span>(space_view) = blueprint.space_views.get(space_view_id) <span class="kw">else </span>{
+        <span class="kw">let </span><span class="prelude-val">Some</span>(space_view) = viewport.view(space_view_id) <span class="kw">else </span>{
             <span class="macro">re_log::warn_once!</span>(<span class="string">"Bug: asked to show a UI for a space view that doesn't exist"</span>);
             <span class="kw">return</span>;
         };
@@ -1413,8 +1409,8 @@
 
                 <span class="kw">let </span>response = remove_button_ui(ui, <span class="string">"Remove space view from the viewport"</span>);
                 <span class="kw">if </span>response.clicked() {
-                    blueprint.mark_user_interaction(ctx);
-                    blueprint.remove_contents(Contents::SpaceView(<span class="kw-2">*</span>space_view_id));
+                    viewport.mark_user_interaction(ctx);
+                    viewport.remove_contents(Contents::SpaceView(<span class="kw-2">*</span>space_view_id));
                 }
 
                 response | vis_response
@@ -1437,7 +1433,7 @@
                 <span class="comment">// Always show the origin hierarchy first.
                 </span><span class="self">self</span>.space_view_entity_hierarchy_ui(
                     ctx,
-                    blueprint,
+                    viewport,
                     ui,
                     query_result,
                     <span class="kw-2">&amp;</span>DataResultNodeOrPath::from_path_lookup(result_tree, <span class="kw-2">&amp;</span>space_view.space_origin),
@@ -1472,7 +1468,7 @@
                     <span class="kw">for </span>projection <span class="kw">in </span>projections {
                         <span class="self">self</span>.space_view_entity_hierarchy_ui(
                             ctx,
-                            blueprint,
+                            viewport,
                             ui,
                             query_result,
                             <span class="kw-2">&amp;</span>DataResultNodeOrPath::DataResultNode(projection),
@@ -1487,12 +1483,12 @@
         <span class="kw">let </span>response = response.on_hover_text(<span class="macro">format!</span>(<span class="string">"{} view"</span>, class.display_name()));
 
         <span class="kw">if </span>response.clicked() {
-            blueprint.focus_tab(space_view.id);
+            viewport.focus_tab(space_view.id);
         }
 
         context_menu_ui_for_item(
             ctx,
-            blueprint,
+            viewport,
             <span class="kw-2">&amp;</span>item,
             <span class="kw-2">&amp;</span>response,
             SelectionUpdateBehavior::UseSelection,
@@ -1502,10 +1498,10 @@
 
         <span class="kw">let </span>content = Contents::SpaceView(<span class="kw-2">*</span>space_view_id);
 
-        blueprint.set_content_visibility(ctx, <span class="kw-2">&amp;</span>content, visible);
+        viewport.set_content_visibility(ctx, <span class="kw-2">&amp;</span>content, visible);
         <span class="self">self</span>.handle_drag_and_drop_interaction(
             ctx,
-            blueprint,
+            viewport,
             ui,
             content,
             <span class="kw-2">&amp;</span>response,
@@ -1517,7 +1513,7 @@
     </span><span class="kw">fn </span>space_view_entity_hierarchy_ui(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         ctx: <span class="kw-2">&amp;</span>ViewerContext&lt;<span class="lifetime">'_</span>&gt;,
-        blueprint: <span class="kw-2">&amp;</span>ViewportBlueprint,
+        viewport: <span class="kw-2">&amp;</span>ViewportBlueprint,
         ui: <span class="kw-2">&amp;mut </span>egui::Ui,
         query_result: <span class="kw-2">&amp;</span>DataQueryResult,
         node_or_path: <span class="kw-2">&amp;</span>DataResultNodeOrPath&lt;<span class="lifetime">'_</span>&gt;,
@@ -1649,7 +1645,7 @@
 
                         <span class="self">self</span>.space_view_entity_hierarchy_ui(
                             ctx,
-                            blueprint,
+                            viewport,
                             ui,
                             query_result,
                             <span class="kw-2">&amp;</span>DataResultNodeOrPath::DataResultNode(child_node),
@@ -1685,7 +1681,7 @@
 
         context_menu_ui_for_item(
             ctx,
-            blueprint,
+            viewport,
             <span class="kw-2">&amp;</span>item,
             <span class="kw-2">&amp;</span>response,
             SelectionUpdateBehavior::UseSelection,
@@ -1699,7 +1695,7 @@
     </span><span class="kw">fn </span>add_new_spaceview_button_ui(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         ctx: <span class="kw-2">&amp;</span>ViewerContext&lt;<span class="lifetime">'_</span>&gt;,
-        blueprint: <span class="kw-2">&amp;</span>ViewportBlueprint,
+        viewport: <span class="kw-2">&amp;</span>ViewportBlueprint,
         ui: <span class="kw-2">&amp;mut </span>egui::Ui,
     ) {
         <span class="kw">if </span>ui
@@ -1713,7 +1709,7 @@
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(Item::Container(container_id)) = ctx.selection().single_item() {
                     <span class="kw-2">*</span>container_id
                 } <span class="kw">else </span>{
-                    blueprint.root_container
+                    viewport.root_container
                 };
 
             show_add_space_view_or_container_modal(target_container_id);
@@ -1725,7 +1721,7 @@
 
     </span><span class="kw">fn </span>handle_root_container_drag_and_drop_interaction(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-        blueprint: <span class="kw-2">&amp;</span>ViewportBlueprint,
+        viewport: <span class="kw-2">&amp;</span>ViewportBlueprint,
         ui: <span class="kw-2">&amp;</span>egui::Ui,
         contents: Contents,
         response: <span class="kw-2">&amp;</span>egui::Response,
@@ -1763,14 +1759,14 @@
         );
 
         <span class="kw">if let </span><span class="prelude-val">Some</span>(drop_target) = drop_target {
-            <span class="self">self</span>.handle_drop_target(blueprint, ui, dragged_item_id, <span class="kw-2">&amp;</span>drop_target);
+            <span class="self">self</span>.handle_drop_target(viewport, ui, dragged_item_id, <span class="kw-2">&amp;</span>drop_target);
         }
     }
 
     <span class="kw">fn </span>handle_drag_and_drop_interaction(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         ctx: <span class="kw-2">&amp;</span>ViewerContext&lt;<span class="lifetime">'_</span>&gt;,
-        blueprint: <span class="kw-2">&amp;</span>ViewportBlueprint,
+        viewport: <span class="kw-2">&amp;</span>ViewportBlueprint,
         ui: <span class="kw-2">&amp;</span>egui::Ui,
         contents: Contents,
         response: <span class="kw-2">&amp;</span>egui::Response,
@@ -1802,13 +1798,13 @@
         //
 
         </span><span class="kw">let </span><span class="prelude-val">Some</span>((parent_container_id, position_index_in_parent)) =
-            blueprint.find_parent_and_position_index(<span class="kw-2">&amp;</span>contents)
+            viewport.find_parent_and_position_index(<span class="kw-2">&amp;</span>contents)
         <span class="kw">else </span>{
             <span class="kw">return</span>;
         };
 
         <span class="kw">let </span>previous_container = <span class="kw">if </span>position_index_in_parent &gt; <span class="number">0 </span>{
-            blueprint
+            viewport
                 .container(<span class="kw-2">&amp;</span>parent_container_id)
                 .map(|container| container.contents[position_index_in_parent - <span class="number">1</span>])
                 .filter(|contents| <span class="macro">matches!</span>(contents, Contents::Container(<span class="kw">_</span>)))
@@ -1847,13 +1843,13 @@
         );
 
         <span class="kw">if let </span><span class="prelude-val">Some</span>(drop_target) = drop_target {
-            <span class="self">self</span>.handle_drop_target(blueprint, ui, dragged_item_id, <span class="kw-2">&amp;</span>drop_target);
+            <span class="self">self</span>.handle_drop_target(viewport, ui, dragged_item_id, <span class="kw-2">&amp;</span>drop_target);
         }
     }
 
     <span class="kw">fn </span>handle_empty_space_drag_and_drop_interaction(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-        blueprint: <span class="kw-2">&amp;</span>ViewportBlueprint,
+        viewport: <span class="kw-2">&amp;</span>ViewportBlueprint,
         ui: <span class="kw-2">&amp;</span>egui::Ui,
         empty_space: egui::Rect,
     ) {
@@ -1879,17 +1875,17 @@
             <span class="kw">let </span>drop_target = re_ui::drag_and_drop::DropTarget::new(
                 empty_space.x_range(),
                 empty_space.top(),
-                Contents::Container(blueprint.root_container),
+                Contents::Container(viewport.root_container),
                 usize::MAX,
             );
 
-            <span class="self">self</span>.handle_drop_target(blueprint, ui, dragged_item_id, <span class="kw-2">&amp;</span>drop_target);
+            <span class="self">self</span>.handle_drop_target(viewport, ui, dragged_item_id, <span class="kw-2">&amp;</span>drop_target);
         }
     }
 
     <span class="kw">fn </span>handle_drop_target(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-        blueprint: <span class="kw-2">&amp;</span>ViewportBlueprint,
+        viewport: <span class="kw-2">&amp;</span>ViewportBlueprint,
         ui: <span class="kw-2">&amp;</span>Ui,
         dragged_item_id: Contents,
         drop_target: <span class="kw-2">&amp;</span>DropTarget&lt;Contents&gt;,
@@ -1897,7 +1893,7 @@
         <span class="comment">// We cannot allow the target location to be "inside" the dragged item, because that would amount moving
         // myself inside of me.
         </span><span class="kw">if let </span>Contents::Container(dragged_container_id) = <span class="kw-2">&amp;</span>dragged_item_id {
-            <span class="kw">if </span>blueprint
+            <span class="kw">if </span>viewport
                 .is_contents_in_container(<span class="kw-2">&amp;</span>drop_target.target_parent_id, dragged_container_id)
             {
                 <span class="kw">return</span>;
@@ -1916,7 +1912,7 @@
         };
 
         <span class="kw">if </span>ui.input(|i| i.pointer.any_released()) {
-            blueprint.move_contents(
+            viewport.move_contents(
                 dragged_item_id,
                 target_container_id,
                 drop_target.target_position_index,
@@ -1982,7 +1978,7 @@
 <span class="doccomment">/// Expand all required items and compute which item we should scroll to.
 </span><span class="kw">fn </span>handle_focused_item(
     ctx: <span class="kw-2">&amp;</span>ViewerContext&lt;<span class="lifetime">'_</span>&gt;,
-    blueprint: <span class="kw-2">&amp;</span>ViewportBlueprint,
+    viewport: <span class="kw-2">&amp;</span>ViewportBlueprint,
     ui: <span class="kw-2">&amp;</span>egui::Ui,
     focused_item: <span class="kw-2">&amp;</span>Item,
 ) -&gt; <span class="prelude-ty">Option</span>&lt;Item&gt; {
@@ -1990,22 +1986,22 @@
         Item::AppId(<span class="kw">_</span>) | Item::DataSource(<span class="kw">_</span>) | Item::StoreId(<span class="kw">_</span>) =&gt; <span class="prelude-val">None</span>,
 
         Item::Container(container_id) =&gt; {
-            expand_all_contents_until(blueprint, ui.ctx(), <span class="kw-2">&amp;</span>Contents::Container(<span class="kw-2">*</span>container_id));
+            expand_all_contents_until(viewport, ui.ctx(), <span class="kw-2">&amp;</span>Contents::Container(<span class="kw-2">*</span>container_id));
             <span class="prelude-val">Some</span>(focused_item.clone())
         }
         Item::SpaceView(space_view_id) =&gt; {
-            expand_all_contents_until(blueprint, ui.ctx(), <span class="kw-2">&amp;</span>Contents::SpaceView(<span class="kw-2">*</span>space_view_id));
+            expand_all_contents_until(viewport, ui.ctx(), <span class="kw-2">&amp;</span>Contents::SpaceView(<span class="kw-2">*</span>space_view_id));
             ctx.focused_item.clone()
         }
         Item::DataResult(space_view_id, instance_path) =&gt; {
-            expand_all_contents_until(blueprint, ui.ctx(), <span class="kw-2">&amp;</span>Contents::SpaceView(<span class="kw-2">*</span>space_view_id));
+            expand_all_contents_until(viewport, ui.ctx(), <span class="kw-2">&amp;</span>Contents::SpaceView(<span class="kw-2">*</span>space_view_id));
             expand_all_data_results_until(ctx, ui.ctx(), space_view_id, <span class="kw-2">&amp;</span>instance_path.entity_path);
 
             ctx.focused_item.clone()
         }
         Item::InstancePath(instance_path) =&gt; {
             <span class="kw">let </span>space_view_ids =
-                list_space_views_with_entity(ctx, blueprint, <span class="kw-2">&amp;</span>instance_path.entity_path);
+                list_space_views_with_entity(ctx, viewport, <span class="kw-2">&amp;</span>instance_path.entity_path);
 
             <span class="comment">// focus on the first matching data result
             </span><span class="kw">let </span>res = space_view_ids
@@ -2013,7 +2009,7 @@
                 .map(|id| Item::DataResult(<span class="kw-2">*</span>id, instance_path.clone()));
 
             <span class="kw">for </span>space_view_id <span class="kw">in </span>space_view_ids {
-                expand_all_contents_until(blueprint, ui.ctx(), <span class="kw-2">&amp;</span>Contents::SpaceView(space_view_id));
+                expand_all_contents_until(viewport, ui.ctx(), <span class="kw-2">&amp;</span>Contents::SpaceView(space_view_id));
                 expand_all_data_results_until(
                     ctx,
                     ui.ctx(),
@@ -2026,7 +2022,7 @@
         }
         Item::ComponentPath(component_path) =&gt; handle_focused_item(
             ctx,
-            blueprint,
+            viewport,
             ui,
             <span class="kw-2">&amp;</span>Item::InstancePath(InstancePath::entity_all(component_path.entity_path.clone())),
         ),
@@ -2035,7 +2031,7 @@
 
 <span class="doccomment">/// Expand all containers until reaching the provided content.
 </span><span class="kw">fn </span>expand_all_contents_until(
-    blueprint: <span class="kw-2">&amp;</span>ViewportBlueprint,
+    viewport: <span class="kw-2">&amp;</span>ViewportBlueprint,
     egui_ctx: <span class="kw-2">&amp;</span>egui::Context,
     focused_contents: <span class="kw-2">&amp;</span>Contents,
 ) {
@@ -2049,7 +2045,7 @@
             .set_open(egui_ctx, <span class="bool-val">true</span>),
     };
 
-    blueprint.visit_contents(<span class="kw-2">&amp;mut </span>|contents, hierarchy| {
+    viewport.visit_contents(<span class="kw-2">&amp;mut </span>|contents, hierarchy| {
         <span class="kw">if </span>contents == focused_contents {
             expend_contents(contents);
             <span class="kw">for </span>parent <span class="kw">in </span>hierarchy {
@@ -2063,11 +2059,11 @@
 </span><span class="attr">#[inline]
 </span><span class="kw">fn </span>list_space_views_with_entity(
     ctx: <span class="kw-2">&amp;</span>ViewerContext&lt;<span class="lifetime">'_</span>&gt;,
-    blueprint: <span class="kw-2">&amp;</span>ViewportBlueprint,
+    viewport: <span class="kw-2">&amp;</span>ViewportBlueprint,
     entity_path: <span class="kw-2">&amp;</span>EntityPath,
 ) -&gt; SmallVec&lt;[SpaceViewId; <span class="number">4</span>]&gt; {
     <span class="kw">let </span><span class="kw-2">mut </span>space_view_ids = SmallVec::new();
-    blueprint.visit_contents(<span class="kw-2">&amp;mut </span>|contents, <span class="kw">_</span>| {
+    viewport.visit_contents(<span class="kw-2">&amp;mut </span>|contents, <span class="kw">_</span>| {
         <span class="kw">if let </span>Contents::SpaceView(space_view_id) = contents {
             <span class="kw">let </span>result_tree = <span class="kw-2">&amp;</span>ctx.lookup_query_result(<span class="kw-2">*</span>space_view_id).tree;
             <span class="kw">if </span>result_tree.lookup_node_by_path(entity_path).is_some() {

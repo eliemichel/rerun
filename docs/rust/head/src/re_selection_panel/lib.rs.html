@@ -40,8 +40,6 @@
 <a href="#40" id="40">40</a>
 <a href="#41" id="41">41</a>
 <a href="#42" id="42">42</a>
-<a href="#43" id="43">43</a>
-<a href="#44" id="44">44</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! The UI for the selection panel.
 
 </span><span class="kw">mod </span>defaults_ui;
@@ -74,11 +72,9 @@
         });
 
         test_ctx.run_in_egui_central_panel(|ctx, ui| {
-            <span class="kw">let </span>(sender, <span class="kw">_</span>) = std::sync::mpsc::channel();
             <span class="kw">let </span>blueprint = ViewportBlueprint::try_from_db(
                 ctx.store_context.blueprint,
                 <span class="kw-2">&amp;</span>LatestAtQuery::latest(blueprint_timeline()),
-                sender,
             );
 
             <span class="kw">let </span><span class="kw-2">mut </span>selection_panel = SelectionPanel::default();

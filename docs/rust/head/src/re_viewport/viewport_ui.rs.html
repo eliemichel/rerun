@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `crates/viewer/re_viewport/src/viewport.rs`."><title>viewport.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-dd39b87e5fcfba68.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="re_viewport" data-themes="" data-resource-suffix="" data-rustdoc-version="1.80.0 (051478957 2024-07-21)" data-channel="1.80.0" data-search-js="search-d52510db62a78183.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-20a3ad099b048cf2.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-df360f571f6edeae.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `crates/viewer/re_viewport/src/viewport_ui.rs`."><title>viewport_ui.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-dd39b87e5fcfba68.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="re_viewport" data-themes="" data-resource-suffix="" data-rustdoc-version="1.80.0 (051478957 2024-07-21)" data-channel="1.80.0" data-search-js="search-d52510db62a78183.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-20a3ad099b048cf2.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-df360f571f6edeae.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -995,32 +995,15 @@
 <a href="#995" id="995">995</a>
 <a href="#996" id="996">996</a>
 <a href="#997" id="997">997</a>
-<a href="#998" id="998">998</a>
-<a href="#999" id="999">999</a>
-<a href="#1000" id="1000">1000</a>
-<a href="#1001" id="1001">1001</a>
-<a href="#1002" id="1002">1002</a>
-<a href="#1003" id="1003">1003</a>
-<a href="#1004" id="1004">1004</a>
-<a href="#1005" id="1005">1005</a>
-<a href="#1006" id="1006">1006</a>
-<a href="#1007" id="1007">1007</a>
-<a href="#1008" id="1008">1008</a>
-<a href="#1009" id="1009">1009</a>
-<a href="#1010" id="1010">1010</a>
-<a href="#1011" id="1011">1011</a>
-<a href="#1012" id="1012">1012</a>
-<a href="#1013" id="1013">1013</a>
-<a href="#1014" id="1014">1014</a>
-<a href="#1015" id="1015">1015</a>
-<a href="#1016" id="1016">1016</a>
-<a href="#1017" id="1017">1017</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! The viewport panel.
 //!
 //! Contains all space views.
 
-</span><span class="kw">use </span>ahash::HashMap;
+</span><span class="kw">use </span>std::sync::Arc;
+
+<span class="kw">use </span>ahash::HashMap;
 <span class="kw">use </span>egui_tiles::{Behavior <span class="kw">as _</span>, EditAction};
+<span class="kw">use </span>parking_lot::Mutex;
 
 <span class="kw">use </span>re_context_menu::{context_menu_ui_for_item, SelectionUpdateBehavior};
 <span class="kw">use </span>re_renderer::ScreenshotProcessor;
@@ -1030,7 +1013,7 @@
     SpaceViewClassRegistry, SpaceViewId, SystemExecutionOutput, ViewQuery, ViewStates,
     ViewerContext,
 };
-<span class="kw">use </span>re_viewport_blueprint::{TreeAction, ViewportBlueprint};
+<span class="kw">use </span>re_viewport_blueprint::{ViewportBlueprint, ViewportCommand};
 
 <span class="kw">use crate</span>::{
     screenshot::handle_pending_space_view_screenshots,
@@ -1050,71 +1033,26 @@
 
 <span class="comment">// ----------------------------------------------------------------------------
 
-</span><span class="doccomment">/// Defines the layout of the Viewport
-</span><span class="kw">pub struct </span>Viewport&lt;<span class="lifetime">'a</span>&gt; {
-    <span class="doccomment">/// The blueprint that drives this viewport. This is the source of truth from the store
-    /// for this frame.
-    </span><span class="kw">pub </span>blueprint: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>ViewportBlueprint,
-
-    <span class="doccomment">/// The [`egui_tiles::Tree`] tree that actually manages blueprint layout. This tree needs
-    /// to be mutable for things like drag-and-drop and is ultimately saved back to the store.
-    /// at the end of the frame if edited.
-    </span><span class="kw">pub </span>tree: egui_tiles::Tree&lt;SpaceViewId&gt;,
-
-    <span class="doccomment">/// Should be set to `true` whenever a tree modification should be back-ported to the blueprint
-    /// store. That should _only_ happen as a result of a user action.
-    </span><span class="kw">pub </span>tree_edited: bool,
-
-    <span class="doccomment">/// Actions to perform at the end of the frame.
-    ///
-    /// We delay any modifications to the tree until the end of the frame,
-    /// so that we don't mutate something while inspecting it.
-    </span>tree_action_receiver: std::sync::mpsc::Receiver&lt;TreeAction&gt;,
-
-    <span class="doccomment">/// Tree action sender
-    ///
-    /// Used to pass along `TabViewer`.
-    </span>tree_action_sender: std::sync::mpsc::Sender&lt;TreeAction&gt;,
+</span><span class="doccomment">/// Defines the UI and layout of the Viewport.
+</span><span class="kw">pub struct </span>ViewportUi {
+    <span class="doccomment">/// The blueprint that drives this viewport.
+    /// This is the source of truth from the store for this frame.
+    /// All modifications are accumulated in [`ViewportBlueprint::deferred_commands`] and applied at the end of the frame.
+    </span><span class="kw">pub </span>blueprint: ViewportBlueprint,
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>&gt; Viewport&lt;<span class="lifetime">'a</span>&gt; {
-    <span class="kw">pub fn </span>new(
-        blueprint: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>ViewportBlueprint,
-        space_view_class_registry: <span class="kw-2">&amp;</span>SpaceViewClassRegistry,
-        tree_action_receiver: std::sync::mpsc::Receiver&lt;TreeAction&gt;,
-        tree_action_sender: std::sync::mpsc::Sender&lt;TreeAction&gt;,
-    ) -&gt; <span class="self">Self </span>{
-        <span class="macro">re_tracing::profile_function!</span>();
-
-        <span class="kw">let </span><span class="kw-2">mut </span>edited = <span class="bool-val">false</span>;
-
-        <span class="comment">// If the blueprint tree is empty/missing we need to auto-layout.
-        </span><span class="kw">let </span>tree = <span class="kw">if </span>blueprint.tree.is_empty() {
-            edited = <span class="bool-val">true</span>;
-            <span class="kw">super</span>::auto_layout::tree_from_space_views(
-                space_view_class_registry,
-                <span class="kw-2">&amp;</span>blueprint.space_views,
-            )
-        } <span class="kw">else </span>{
-            blueprint.tree.clone()
-        };
-
-        <span class="self">Self </span>{
-            blueprint,
-            tree,
-            tree_edited: edited,
-            tree_action_receiver,
-            tree_action_sender,
-        }
+<span class="kw">impl </span>ViewportUi {
+    <span class="kw">pub fn </span>new(blueprint: ViewportBlueprint) -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{ blueprint }
     }
 
     <span class="kw">pub fn </span>viewport_ui(
-        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        <span class="kw-2">&amp;</span><span class="self">self</span>,
         ui: <span class="kw-2">&amp;mut </span>egui::Ui,
-        ctx: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>ViewerContext&lt;<span class="lifetime">'_</span>&gt;,
+        ctx: <span class="kw-2">&amp;</span>ViewerContext&lt;<span class="lifetime">'_</span>&gt;,
         view_states: <span class="kw-2">&amp;mut </span>ViewStates,
     ) {
-        <span class="kw">let </span>Viewport { blueprint, .. } = <span class="self">self</span>;
+        <span class="kw">let </span><span class="self">Self </span>{ blueprint } = <span class="self">self</span>;
 
         <span class="kw">let </span>is_zero_sized_viewport = ui.available_size().min_elem() &lt;= <span class="number">0.0</span>;
         <span class="kw">if </span>is_zero_sized_viewport || !ui.is_visible() {
@@ -1133,19 +1071,16 @@
             }
         }
 
-        <span class="kw">let </span><span class="kw-2">mut </span>maximized_tree;
-
-        <span class="kw">let </span>tree = <span class="kw">if let </span><span class="prelude-val">Some</span>(space_view_id) = blueprint.maximized {
+        <span class="kw">let </span><span class="kw-2">mut </span>tree = <span class="kw">if let </span><span class="prelude-val">Some</span>(space_view_id) = blueprint.maximized {
             <span class="kw">let </span><span class="kw-2">mut </span>tiles = egui_tiles::Tiles::default();
             <span class="kw">let </span>root = tiles.insert_pane(space_view_id);
-            maximized_tree = egui_tiles::Tree::new(<span class="string">"viewport_tree"</span>, root, tiles);
-            <span class="kw-2">&amp;mut </span>maximized_tree
+            egui_tiles::Tree::new(<span class="string">"viewport_tree"</span>, root, tiles)
         } <span class="kw">else </span>{
-            <span class="kw-2">&amp;mut </span><span class="self">self</span>.tree
+            blueprint.tree.clone()
         };
 
         <span class="kw">let </span>executed_systems_per_space_view =
-            execute_systems_for_all_views(ctx, tree, <span class="kw-2">&amp;</span>blueprint.space_views, view_states);
+            execute_systems_for_all_views(ctx, <span class="kw-2">&amp;</span>tree, <span class="kw-2">&amp;</span>blueprint.space_views, view_states);
 
         <span class="kw">let </span>contents_per_tile_id = blueprint
             .contents_iter()
@@ -1157,7 +1092,7 @@
 
             <span class="macro">re_tracing::profile_scope!</span>(<span class="string">"tree.ui"</span>);
 
-            <span class="kw">let </span><span class="kw-2">mut </span>tab_viewer = TabViewer {
+            <span class="kw">let </span><span class="kw-2">mut </span>egui_tiles_delegate = TilesDelegate {
                 view_states,
                 ctx,
                 viewport_blueprint: blueprint,
@@ -1165,27 +1100,11 @@
                 edited: <span class="bool-val">false</span>,
                 executed_systems_per_space_view,
                 contents_per_tile_id,
-                tree_action_sender: <span class="self">self</span>.tree_action_sender.clone(),
+                deferred_commands: <span class="self">self</span>.blueprint.deferred_commands.clone(),
                 root_container_id: <span class="self">self</span>.blueprint.root_container,
             };
 
-            tree.ui(<span class="kw-2">&amp;mut </span>tab_viewer, ui);
-
-            <span class="comment">// Detect if the user has moved a tab or similar.
-            // If so we can no longer automatically change the layout without discarding user edits.
-            </span><span class="kw">let </span>is_dragging_a_tile = tree.dragged_id(ui.ctx()).is_some();
-            <span class="kw">if </span>tab_viewer.edited || is_dragging_a_tile {
-                <span class="kw">if </span>blueprint.auto_layout() {
-                    <span class="macro">re_log::trace!</span>(
-                        <span class="string">"The user is manipulating the egui_tiles tree - will no longer auto-layout"
-                    </span>);
-                }
-
-                blueprint.set_auto_layout(<span class="bool-val">false</span>, ctx);
-            }
-
-            <span class="comment">// TODO(#4687): Be extra careful here. If we mark edited inappropriately we can create an infinite edit loop.
-            </span><span class="self">self</span>.tree_edited |= tab_viewer.edited;
+            tree.ui(<span class="kw-2">&amp;mut </span>egui_tiles_delegate, ui);
 
             <span class="comment">// Outline hovered &amp; selected tiles:
             </span><span class="kw">for </span>contents <span class="kw">in </span>blueprint.contents_iter() {
@@ -1216,6 +1135,25 @@
                         .rect_stroke(rect.shrink(stroke.width / <span class="number">2.0</span>), <span class="number">0.0</span>, stroke);
                 }
             }
+
+            <span class="kw">if </span>blueprint.maximized.is_none() {
+                <span class="comment">// Detect if the user has moved a tab or similar.
+                // If so we can no longer automatically change the layout without discarding user edits.
+                </span><span class="kw">let </span>is_dragging_a_tile = tree.dragged_id(ui.ctx()).is_some();
+                <span class="kw">if </span>egui_tiles_delegate.edited || is_dragging_a_tile {
+                    <span class="kw">if </span>blueprint.auto_layout() {
+                        <span class="macro">re_log::trace!</span>(
+                            <span class="string">"The user is manipulating the egui_tiles tree - will no longer auto-layout"
+                        </span>);
+                    }
+
+                    blueprint.set_auto_layout(<span class="bool-val">false</span>, ctx);
+                }
+
+                <span class="kw">if </span>egui_tiles_delegate.edited {
+                    <span class="self">self</span>.blueprint.deferred_commands.lock().push(ViewportCommand::SetTree(tree));
+                }
+            }
         });
 
         <span class="self">self</span>.blueprint.set_maximized(maximized, ctx);
@@ -1243,223 +1181,252 @@
         <span class="self">self</span>.blueprint.spawn_heuristic_space_views(ctx);
     }
 
-    <span class="doccomment">/// Process any deferred `TreeActions` and then sync to blueprint
-    </span><span class="kw">pub fn </span>update_and_sync_tile_tree_to_blueprint(<span class="kw-2">mut </span><span class="self">self</span>, ctx: <span class="kw-2">&amp;</span>ViewerContext&lt;<span class="lifetime">'_</span>&gt;) {
-        <span class="comment">// At the end of the Tree-UI, we can safely apply deferred actions.
+    <span class="doccomment">/// Process any deferred [`ViewportCommand`] and then save to blueprint store (if needed).
+    </span><span class="kw">pub fn </span>save_to_blueprint_store(
+        <span class="self">self</span>,
+        ctx: <span class="kw-2">&amp;</span>ViewerContext&lt;<span class="lifetime">'_</span>&gt;,
+        space_view_class_registry: <span class="kw-2">&amp;</span>SpaceViewClassRegistry,
+    ) {
+        <span class="macro">re_tracing::profile_function!</span>();
 
-        </span><span class="kw">let </span><span class="kw-2">mut </span>reset = <span class="bool-val">false</span>;
+        <span class="kw">let </span><span class="self">Self </span>{ <span class="kw-2">mut </span>blueprint } = <span class="self">self</span>;
 
-        <span class="comment">// TODO(#4687): Be extra careful here. If we mark edited inappropriately we can create an infinite edit loop.
-        </span><span class="kw">for </span>tree_action <span class="kw">in </span><span class="self">self</span>.tree_action_receiver.try_iter() {
-            <span class="macro">re_log::trace!</span>(<span class="string">"Processing tree action: {tree_action:?}"</span>);
-            <span class="kw">match </span>tree_action {
-                TreeAction::AddSpaceView(space_view_id, parent_container, position_in_parent) =&gt; {
-                    <span class="kw">if </span><span class="self">self</span>.blueprint.auto_layout() {
-                        <span class="comment">// Re-run the auto-layout next frame:
-                        </span><span class="macro">re_log::trace!</span>(
-                            <span class="string">"Added a space view with no user edits yet - will re-run auto-layout"
-                        </span>);
+        <span class="kw">let </span>commands: Vec&lt;ViewportCommand&gt; = blueprint.deferred_commands.lock().drain(..).collect();
 
-                        reset = <span class="bool-val">true</span>;
-                    } <span class="kw">else </span>{
-                        <span class="kw">let </span>parent_id = parent_container.unwrap_or(<span class="self">self</span>.blueprint.root_container);
-                        <span class="macro">re_log::trace!</span>(<span class="string">"Adding space-view {space_view_id} to parent {parent_id}"</span>);
-                        <span class="kw">let </span>tile_id = <span class="self">self</span>.tree.tiles.insert_pane(space_view_id);
-                        <span class="kw">let </span>container_tile_id = blueprint_id_to_tile_id(<span class="kw-2">&amp;</span>parent_id);
-                        <span class="kw">if let </span><span class="prelude-val">Some</span>(egui_tiles::Tile::Container(container)) =
-                            <span class="self">self</span>.tree.tiles.get_mut(container_tile_id)
-                        {
-                            <span class="macro">re_log::trace!</span>(<span class="string">"Inserting new space view into root container"</span>);
-                            container.add_child(tile_id);
-                            <span class="kw">if let </span><span class="prelude-val">Some</span>(position_in_parent) = position_in_parent {
-                                <span class="self">self</span>.tree.move_tile_to_container(
-                                    tile_id,
-                                    container_tile_id,
-                                    position_in_parent,
-                                    <span class="bool-val">true</span>,
-                                );
-                            }
-                        } <span class="kw">else </span>{
-                            <span class="macro">re_log::trace!</span>(<span class="string">"Parent was not a container - will re-run auto-layout"</span>);
-                            reset = <span class="bool-val">true</span>;
-                        }
+        <span class="kw">if </span>commands.is_empty() {
+            <span class="kw">return</span>; <span class="comment">// No changes this frame - no need to save to blueprint store.
+        </span>}
+
+        <span class="kw">let </span><span class="kw-2">mut </span>run_auto_layout = <span class="bool-val">false</span>;
+
+        <span class="kw">for </span>command <span class="kw">in </span>commands {
+            apply_viewport_command(ctx, <span class="kw-2">&amp;mut </span>blueprint, command, <span class="kw-2">&amp;mut </span>run_auto_layout);
+        }
+
+        <span class="kw">if </span>run_auto_layout {
+            blueprint.tree = <span class="kw">super</span>::auto_layout::tree_from_space_views(
+                space_view_class_registry,
+                <span class="kw-2">&amp;</span>blueprint.space_views,
+            );
+        }
+
+        <span class="comment">// Simplify before we save the tree.
+        // `egui_tiles` also runs a simplifying pass when calling `tree.ui`, but that is too late.
+        // We want the simplified changes saved to the store:
+        </span>blueprint.tree.simplify(<span class="kw-2">&amp;</span>tree_simplification_options());
+
+        <span class="comment">// TODO(emilk): consider diffing the tree against the state it was in at the start of the frame,
+        // so that we only save it if it actually changed.
+
+        </span>blueprint.save_tree_as_containers(ctx);
+    }
+}
+
+<span class="kw">fn </span>apply_viewport_command(
+    ctx: <span class="kw-2">&amp;</span>ViewerContext&lt;<span class="lifetime">'_</span>&gt;,
+    bp: <span class="kw-2">&amp;mut </span>ViewportBlueprint,
+    command: ViewportCommand,
+    run_auto_layout: <span class="kw-2">&amp;mut </span>bool,
+) {
+    <span class="macro">re_log::trace!</span>(<span class="string">"Processing viewport command: {command:?}"</span>);
+    <span class="kw">match </span>command {
+        ViewportCommand::SetTree(new_tree) =&gt; {
+            bp.tree = new_tree;
+        }
+
+        ViewportCommand::AddSpaceView {
+            space_view,
+            parent_container,
+            position_in_parent,
+        } =&gt; {
+            <span class="kw">let </span>space_view_id = space_view.id;
+
+            space_view.save_to_blueprint_store(ctx);
+            bp.space_views.insert(space_view_id, space_view);
+
+            <span class="kw">if </span>bp.auto_layout() {
+                <span class="comment">// No need to add to the tree - we'll create a new tree from scratch instead.
+                </span><span class="macro">re_log::trace!</span>(<span class="string">"Running auto-layout after adding a space-view because auto_layout is turned on"</span>);
+                <span class="kw-2">*</span>run_auto_layout = <span class="bool-val">true</span>;
+            } <span class="kw">else </span>{
+                <span class="comment">// Add the view to the tree:
+                </span><span class="kw">let </span>parent_id = parent_container.unwrap_or(bp.root_container);
+                <span class="macro">re_log::trace!</span>(<span class="string">"Adding space-view {space_view_id} to parent {parent_id}"</span>);
+                <span class="kw">let </span>tile_id = bp.tree.tiles.insert_pane(space_view_id);
+                <span class="kw">let </span>container_tile_id = blueprint_id_to_tile_id(<span class="kw-2">&amp;</span>parent_id);
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(egui_tiles::Tile::Container(container)) =
+                    bp.tree.tiles.get_mut(container_tile_id)
+                {
+                    <span class="macro">re_log::trace!</span>(<span class="string">"Inserting new space view into root container"</span>);
+                    container.add_child(tile_id);
+                    <span class="kw">if let </span><span class="prelude-val">Some</span>(position_in_parent) = position_in_parent {
+                        bp.tree.move_tile_to_container(
+                            tile_id,
+                            container_tile_id,
+                            position_in_parent,
+                            <span class="bool-val">true</span>,
+                        );
                     }
-
-                    <span class="self">self</span>.tree_edited = <span class="bool-val">true</span>;
-                }
-                TreeAction::AddContainer(container_kind, parent_container) =&gt; {
-                    <span class="kw">let </span>parent_id = parent_container.unwrap_or(<span class="self">self</span>.blueprint.root_container);
-                    <span class="kw">let </span>tile_id = <span class="self">self
-                        </span>.tree
-                        .tiles
-                        .insert_container(egui_tiles::Container::new(container_kind, <span class="macro">vec!</span>[]));
-                    <span class="macro">re_log::trace!</span>(<span class="string">"Adding container {container_kind:?} to parent {parent_id}"</span>);
-                    <span class="kw">if let </span><span class="prelude-val">Some</span>(egui_tiles::Tile::Container(container)) =
-                        <span class="self">self</span>.tree.tiles.get_mut(blueprint_id_to_tile_id(<span class="kw-2">&amp;</span>parent_id))
-                    {
-                        <span class="macro">re_log::trace!</span>(<span class="string">"Inserting new space view into container {parent_id:?}"</span>);
-                        container.add_child(tile_id);
-                    } <span class="kw">else </span>{
-                        <span class="macro">re_log::trace!</span>(
-                            <span class="string">"Parent or root was not a container - will re-run auto-layout"
-                        </span>);
-                        reset = <span class="bool-val">true</span>;
-                    }
-
-                    <span class="self">self</span>.tree_edited = <span class="bool-val">true</span>;
-                }
-                TreeAction::SetContainerKind(container_id, container_kind) =&gt; {
-                    <span class="kw">if let </span><span class="prelude-val">Some</span>(egui_tiles::Tile::Container(container)) = <span class="self">self
-                        </span>.tree
-                        .tiles
-                        .get_mut(blueprint_id_to_tile_id(<span class="kw-2">&amp;</span>container_id))
-                    {
-                        <span class="macro">re_log::trace!</span>(<span class="string">"Mutating container {container_id:?} to {container_kind:?}"</span>);
-                        container.set_kind(container_kind);
-                    } <span class="kw">else </span>{
-                        <span class="macro">re_log::trace!</span>(<span class="string">"No root found - will re-run auto-layout"</span>);
-                    }
-
-                    <span class="self">self</span>.tree_edited = <span class="bool-val">true</span>;
-                }
-                TreeAction::FocusTab(space_view_id) =&gt; {
-                    <span class="kw">let </span>found = <span class="self">self</span>.tree.make_active(|<span class="kw">_</span>, tile| <span class="kw">match </span>tile {
-                        egui_tiles::Tile::Pane(this_space_view_id) =&gt; {
-                            <span class="kw-2">*</span>this_space_view_id == space_view_id
-                        }
-                        egui_tiles::Tile::Container(<span class="kw">_</span>) =&gt; <span class="bool-val">false</span>,
-                    });
+                } <span class="kw">else </span>{
                     <span class="macro">re_log::trace!</span>(
-                        <span class="string">"Found tab to focus on for space view ID {space_view_id}: {found}"
+                        <span class="string">"Parent was not a container (or not found) - will re-run auto-layout"
                     </span>);
-                    <span class="self">self</span>.tree_edited = <span class="bool-val">true</span>;
-                }
-                TreeAction::RemoveContents(contents) =&gt; {
-                    <span class="kw">let </span>tile_id = contents.as_tile_id();
-
-                    <span class="kw">for </span>tile <span class="kw">in </span><span class="self">self</span>.tree.remove_recursively(tile_id) {
-                        <span class="macro">re_log::trace!</span>(<span class="string">"Removing tile {tile_id:?}"</span>);
-                        <span class="kw">if let </span>egui_tiles::Tile::Pane(space_view_id) = tile {
-                            <span class="macro">re_log::trace!</span>(<span class="string">"Removing space view {space_view_id}"</span>);
-                            <span class="self">self</span>.tree.tiles.remove(tile_id);
-                            <span class="self">self</span>.blueprint.remove_space_view(<span class="kw-2">&amp;</span>space_view_id, ctx);
-                        }
-                    }
-
-                    <span class="kw">if </span><span class="prelude-val">Some</span>(tile_id) == <span class="self">self</span>.tree.root {
-                        <span class="self">self</span>.tree.root = <span class="prelude-val">None</span>;
-                    }
-                    <span class="self">self</span>.tree_edited = <span class="bool-val">true</span>;
-                }
-                TreeAction::SimplifyContainer(container_id, options) =&gt; {
-                    <span class="macro">re_log::trace!</span>(<span class="string">"Simplifying tree with options: {options:?}"</span>);
-                    <span class="kw">let </span>tile_id = blueprint_id_to_tile_id(<span class="kw-2">&amp;</span>container_id);
-                    <span class="self">self</span>.tree.simplify_children_of_tile(tile_id, <span class="kw-2">&amp;</span>options);
-                    <span class="self">self</span>.tree_edited = <span class="bool-val">true</span>;
-                }
-                TreeAction::MakeAllChildrenSameSize(container_id) =&gt; {
-                    <span class="kw">let </span>tile_id = blueprint_id_to_tile_id(<span class="kw-2">&amp;</span>container_id);
-                    <span class="kw">if let </span><span class="prelude-val">Some</span>(egui_tiles::Tile::Container(container)) =
-                        <span class="self">self</span>.tree.tiles.get_mut(tile_id)
-                    {
-                        <span class="kw">match </span>container {
-                            egui_tiles::Container::Tabs(<span class="kw">_</span>) =&gt; {}
-                            egui_tiles::Container::Linear(linear) =&gt; {
-                                linear.shares = Default::default();
-                            }
-                            egui_tiles::Container::Grid(grid) =&gt; {
-                                grid.col_shares = Default::default();
-                                grid.row_shares = Default::default();
-                            }
-                        }
-                    }
-                    <span class="self">self</span>.tree_edited = <span class="bool-val">true</span>;
-                }
-                TreeAction::MoveContents {
-                    contents_to_move,
-                    target_container,
-                    target_position_in_container,
-                } =&gt; {
-                    <span class="macro">re_log::trace!</span>(
-                        <span class="string">"Moving {contents_to_move:?} to container {target_container:?} at pos \
-                        {target_position_in_container}"
-                    </span>);
-
-                    <span class="kw">let </span>contents_tile_id = contents_to_move.as_tile_id();
-                    <span class="kw">let </span>target_container_tile_id = blueprint_id_to_tile_id(<span class="kw-2">&amp;</span>target_container);
-
-                    <span class="self">self</span>.tree.move_tile_to_container(
-                        contents_tile_id,
-                        target_container_tile_id,
-                        target_position_in_container,
-                        <span class="bool-val">true</span>,
-                    );
-                    <span class="self">self</span>.tree_edited = <span class="bool-val">true</span>;
-                }
-                TreeAction::MoveContentsToNewContainer {
-                    contents_to_move,
-                    new_container_kind,
-                    target_container,
-                    target_position_in_container,
-                } =&gt; {
-                    <span class="kw">let </span>new_container_tile_id = <span class="self">self
-                        </span>.tree
-                        .tiles
-                        .insert_container(egui_tiles::Container::new(new_container_kind, <span class="macro">vec!</span>[]));
-
-                    <span class="kw">let </span>target_container_tile_id = blueprint_id_to_tile_id(<span class="kw-2">&amp;</span>target_container);
-                    <span class="self">self</span>.tree.move_tile_to_container(
-                        new_container_tile_id,
-                        target_container_tile_id,
-                        target_position_in_container,
-                        <span class="bool-val">true</span>, <span class="comment">// reflow grid if needed
-                    </span>);
-
-                    <span class="kw">for </span>(pos, content) <span class="kw">in </span>contents_to_move.into_iter().enumerate() {
-                        <span class="self">self</span>.tree.move_tile_to_container(
-                            content.as_tile_id(),
-                            new_container_tile_id,
-                            pos,
-                            <span class="bool-val">true</span>, <span class="comment">// reflow grid if needed
-                        </span>);
-                    }
-
-                    <span class="self">self</span>.tree_edited = <span class="bool-val">true</span>;
+                    <span class="kw-2">*</span>run_auto_layout = <span class="bool-val">true</span>;
                 }
             }
         }
 
-        <span class="kw">if </span>reset {
-            <span class="comment">// We don't run auto-layout here since the new space views also haven't been
-            // written to the store yet.
-            </span><span class="macro">re_log::trace!</span>(<span class="string">"Clearing the blueprint tree to force reset on the next frame"</span>);
-            <span class="self">self</span>.tree = egui_tiles::Tree::empty(<span class="string">"viewport_tree"</span>);
-            <span class="self">self</span>.tree_edited = <span class="bool-val">true</span>;
+        ViewportCommand::AddContainer {
+            container_kind,
+            parent_container,
+        } =&gt; {
+            <span class="kw">let </span>parent_id = parent_container.unwrap_or(bp.root_container);
+
+            <span class="kw">let </span>tile_id = bp
+                .tree
+                .tiles
+                .insert_container(egui_tiles::Container::new(container_kind, <span class="macro">vec!</span>[]));
+
+            <span class="macro">re_log::trace!</span>(<span class="string">"Adding container {container_kind:?} to parent {parent_id}"</span>);
+
+            <span class="kw">if let </span><span class="prelude-val">Some</span>(egui_tiles::Tile::Container(parent_container)) =
+                bp.tree.tiles.get_mut(blueprint_id_to_tile_id(<span class="kw-2">&amp;</span>parent_id))
+            {
+                <span class="macro">re_log::trace!</span>(<span class="string">"Inserting new space view into container {parent_id:?}"</span>);
+                parent_container.add_child(tile_id);
+            } <span class="kw">else </span>{
+                <span class="macro">re_log::trace!</span>(<span class="string">"Parent or root was not a container - will re-run auto-layout"</span>);
+                <span class="kw-2">*</span>run_auto_layout = <span class="bool-val">true</span>;
+            }
         }
 
-        <span class="comment">// Finally, save any edits to the blueprint tree
-        // This is a no-op if the tree hasn't changed.
-        </span><span class="kw">if </span><span class="self">self</span>.tree_edited {
-            <span class="comment">// TODO(#4687): Be extra careful here. If we mark edited inappropriately we can create an infinite edit loop.
-
-            // Simplify before we save the tree. Normally additional simplification will
-            // happen on the next render loop, but that's too late -- unsimplified
-            // changes will be baked into the tree.
-            </span><span class="kw">let </span>options = tree_simplification_options();
-            <span class="self">self</span>.tree.simplify(<span class="kw-2">&amp;</span>options);
-
-            <span class="self">self</span>.blueprint.save_tree_as_containers(<span class="kw-2">&amp;</span><span class="self">self</span>.tree, ctx);
+        ViewportCommand::SetContainerKind(container_id, container_kind) =&gt; {
+            <span class="kw">if let </span><span class="prelude-val">Some</span>(egui_tiles::Tile::Container(container)) = bp
+                .tree
+                .tiles
+                .get_mut(blueprint_id_to_tile_id(<span class="kw-2">&amp;</span>container_id))
+            {
+                <span class="macro">re_log::trace!</span>(<span class="string">"Mutating container {container_id:?} to {container_kind:?}"</span>);
+                container.set_kind(container_kind);
+            } <span class="kw">else </span>{
+                <span class="macro">re_log::trace!</span>(<span class="string">"No root found - will re-run auto-layout"</span>);
+            }
         }
-    }
 
-    <span class="doccomment">/// If `false`, the item is referring to data that is not present in this blueprint.
-    </span><span class="attr">#[inline]
-    </span><span class="kw">pub fn </span>is_item_valid(
-        <span class="kw-2">&amp;</span><span class="self">self</span>,
-        store_context: <span class="kw-2">&amp;</span>re_viewer_context::StoreContext&lt;<span class="lifetime">'_</span>&gt;,
-        item: <span class="kw-2">&amp;</span>Item,
-    ) -&gt; bool {
-        <span class="self">self</span>.blueprint.is_item_valid(store_context, item)
+        ViewportCommand::FocusTab(space_view_id) =&gt; {
+            <span class="kw">let </span>found = bp.tree.make_active(|<span class="kw">_</span>, tile| <span class="kw">match </span>tile {
+                egui_tiles::Tile::Pane(this_space_view_id) =&gt; <span class="kw-2">*</span>this_space_view_id == space_view_id,
+                egui_tiles::Tile::Container(<span class="kw">_</span>) =&gt; <span class="bool-val">false</span>,
+            });
+            <span class="macro">re_log::trace!</span>(<span class="string">"Found tab to focus on for space view ID {space_view_id}: {found}"</span>);
+        }
+
+        ViewportCommand::RemoveContents(contents) =&gt; {
+            <span class="kw">let </span>tile_id = contents.as_tile_id();
+
+            <span class="kw">for </span>tile <span class="kw">in </span>bp.tree.remove_recursively(tile_id) {
+                <span class="macro">re_log::trace!</span>(<span class="string">"Removing tile {tile_id:?}"</span>);
+                <span class="kw">match </span>tile {
+                    egui_tiles::Tile::Pane(space_view_id) =&gt; {
+                        <span class="macro">re_log::trace!</span>(<span class="string">"Removing space view {space_view_id}"</span>);
+
+                        <span class="comment">// Remove the space view from the store
+                        </span><span class="kw">if let </span><span class="prelude-val">Some</span>(space_view) = bp.space_views.get(<span class="kw-2">&amp;</span>space_view_id) {
+                            space_view.clear(ctx);
+                        }
+
+                        <span class="comment">// If the space-view was maximized, clean it up
+                        </span><span class="kw">if </span>bp.maximized == <span class="prelude-val">Some</span>(space_view_id) {
+                            bp.set_maximized(<span class="prelude-val">None</span>, ctx);
+                        }
+
+                        bp.space_views.remove(<span class="kw-2">&amp;</span>space_view_id);
+                    }
+                    egui_tiles::Tile::Container(<span class="kw">_</span>) =&gt; {
+                        <span class="comment">// Empty containers (like this one) will be auto-removed by the tree simplification algorithm,
+                        // that will run later because of this tree edit.
+                    </span>}
+                }
+            }
+
+            bp.mark_user_interaction(ctx);
+
+            <span class="kw">if </span><span class="prelude-val">Some</span>(tile_id) == bp.tree.root {
+                bp.tree.root = <span class="prelude-val">None</span>;
+            }
+        }
+
+        ViewportCommand::SimplifyContainer(container_id, options) =&gt; {
+            <span class="macro">re_log::trace!</span>(<span class="string">"Simplifying tree with options: {options:?}"</span>);
+            <span class="kw">let </span>tile_id = blueprint_id_to_tile_id(<span class="kw-2">&amp;</span>container_id);
+            bp.tree.simplify_children_of_tile(tile_id, <span class="kw-2">&amp;</span>options);
+        }
+
+        ViewportCommand::MakeAllChildrenSameSize(container_id) =&gt; {
+            <span class="kw">let </span>tile_id = blueprint_id_to_tile_id(<span class="kw-2">&amp;</span>container_id);
+            <span class="kw">if let </span><span class="prelude-val">Some</span>(egui_tiles::Tile::Container(container)) = bp.tree.tiles.get_mut(tile_id) {
+                <span class="kw">match </span>container {
+                    egui_tiles::Container::Tabs(<span class="kw">_</span>) =&gt; {}
+                    egui_tiles::Container::Linear(linear) =&gt; {
+                        linear.shares = Default::default();
+                    }
+                    egui_tiles::Container::Grid(grid) =&gt; {
+                        grid.col_shares = Default::default();
+                        grid.row_shares = Default::default();
+                    }
+                }
+            }
+        }
+
+        ViewportCommand::MoveContents {
+            contents_to_move,
+            target_container,
+            target_position_in_container,
+        } =&gt; {
+            <span class="macro">re_log::trace!</span>(
+                <span class="string">"Moving {contents_to_move:?} to container {target_container:?} at pos \
+                        {target_position_in_container}"
+            </span>);
+
+            <span class="kw">let </span>contents_tile_id = contents_to_move.as_tile_id();
+            <span class="kw">let </span>target_container_tile_id = blueprint_id_to_tile_id(<span class="kw-2">&amp;</span>target_container);
+
+            bp.tree.move_tile_to_container(
+                contents_tile_id,
+                target_container_tile_id,
+                target_position_in_container,
+                <span class="bool-val">true</span>,
+            );
+        }
+
+        ViewportCommand::MoveContentsToNewContainer {
+            contents_to_move,
+            new_container_kind,
+            target_container,
+            target_position_in_container,
+        } =&gt; {
+            <span class="kw">let </span>new_container_tile_id = bp
+                .tree
+                .tiles
+                .insert_container(egui_tiles::Container::new(new_container_kind, <span class="macro">vec!</span>[]));
+
+            <span class="kw">let </span>target_container_tile_id = blueprint_id_to_tile_id(<span class="kw-2">&amp;</span>target_container);
+            bp.tree.move_tile_to_container(
+                new_container_tile_id,
+                target_container_tile_id,
+                target_position_in_container,
+                <span class="bool-val">true</span>, <span class="comment">// reflow grid if needed
+            </span>);
+
+            <span class="kw">for </span>(pos, content) <span class="kw">in </span>contents_to_move.into_iter().enumerate() {
+                bp.tree.move_tile_to_container(
+                    content.as_tile_id(),
+                    new_container_tile_id,
+                    pos,
+                    <span class="bool-val">true</span>, <span class="comment">// reflow grid if needed
+                </span>);
+            }
+        }
     }
 }
 
@@ -1469,13 +1436,13 @@
 ///
 /// In our case, each pane is a space view,
 /// while containers are just groups of things.
-</span><span class="kw">struct </span>TabViewer&lt;<span class="lifetime">'a</span>, <span class="lifetime">'b</span>&gt; {
+</span><span class="kw">struct </span>TilesDelegate&lt;<span class="lifetime">'a</span>, <span class="lifetime">'b</span>&gt; {
     view_states: <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>ViewStates,
     ctx: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>ViewerContext&lt;<span class="lifetime">'b</span>&gt;,
     viewport_blueprint: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>ViewportBlueprint,
     maximized: <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span><span class="prelude-ty">Option</span>&lt;SpaceViewId&gt;,
     root_container_id: ContainerId,
-    tree_action_sender: std::sync::mpsc::Sender&lt;TreeAction&gt;,
+    deferred_commands: Arc&lt;Mutex&lt;Vec&lt;ViewportCommand&gt;&gt;&gt;,
 
     <span class="doccomment">/// List of query &amp; system execution results for each space view.
     </span>executed_systems_per_space_view: HashMap&lt;SpaceViewId, (ViewQuery&lt;<span class="lifetime">'a</span>&gt;, SystemExecutionOutput)&gt;,
@@ -1487,7 +1454,7 @@
     </span>edited: bool,
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>&gt; egui_tiles::Behavior&lt;SpaceViewId&gt; <span class="kw">for </span>TabViewer&lt;<span class="lifetime">'a</span>, <span class="lifetime">'_</span>&gt; {
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>&gt; egui_tiles::Behavior&lt;SpaceViewId&gt; <span class="kw">for </span>TilesDelegate&lt;<span class="lifetime">'a</span>, <span class="lifetime">'_</span>&gt; {
     <span class="kw">fn </span>pane_ui(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         ui: <span class="kw-2">&amp;mut </span>egui::Ui,
@@ -1496,7 +1463,7 @@
     ) -&gt; egui_tiles::UiResponse {
         <span class="macro">re_tracing::profile_function!</span>();
 
-        <span class="kw">let </span><span class="prelude-val">Some</span>(space_view_blueprint) = <span class="self">self</span>.viewport_blueprint.space_views.get(view_id) <span class="kw">else </span>{
+        <span class="kw">let </span><span class="prelude-val">Some</span>(space_view_blueprint) = <span class="self">self</span>.viewport_blueprint.view(view_id) <span class="kw">else </span>{
             <span class="kw">return </span>Default::default();
         };
 
@@ -1571,7 +1538,7 @@
     }
 
     <span class="kw">fn </span>tab_title_for_pane(<span class="kw-2">&amp;mut </span><span class="self">self</span>, space_view_id: <span class="kw-2">&amp;</span>SpaceViewId) -&gt; egui::WidgetText {
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(space_view) = <span class="self">self</span>.viewport_blueprint.space_views.get(space_view_id) {
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(space_view) = <span class="self">self</span>.viewport_blueprint.view(space_view_id) {
             <span class="comment">// Note: the formatting for unnamed space views is handled by `TabWidget::new()`
             </span>space_view.display_name_or_default().as_ref().into()
         } <span class="kw">else </span>{
@@ -1684,8 +1651,7 @@
         };
         <span class="kw">let </span>space_view_id = <span class="kw-2">*</span>space_view_id;
 
-        <span class="kw">let </span><span class="prelude-val">Some</span>(space_view_blueprint) = <span class="self">self</span>.viewport_blueprint.space_views.get(<span class="kw-2">&amp;</span>space_view_id)
-        <span class="kw">else </span>{
+        <span class="kw">let </span><span class="prelude-val">Some</span>(space_view_blueprint) = <span class="self">self</span>.viewport_blueprint.view(<span class="kw-2">&amp;</span>space_view_id) <span class="kw">else </span>{
             <span class="kw">return</span>;
         };
         <span class="kw">let </span>num_space_views = tiles.tiles().filter(|tile| tile.is_pane()).count();
@@ -1786,9 +1752,9 @@
                 // drag and drop operation often lead to many spurious empty containers. To work
                 // around this, we run a simplification pass when a drop occurs.
 
-                </span><span class="kw">if </span><span class="self">self
-                    </span>.tree_action_sender
-                    .send(TreeAction::SimplifyContainer(
+                </span><span class="self">self</span>.deferred_commands
+                    .lock()
+                    .push(ViewportCommand::SimplifyContainer(
                         <span class="self">self</span>.root_container_id,
                         egui_tiles::SimplificationOptions {
                             prune_empty_tabs: <span class="bool-val">true</span>,
@@ -1798,11 +1764,7 @@
                             all_panes_must_have_tabs: <span class="bool-val">true</span>,
                             join_nested_linear_containers: <span class="bool-val">false</span>,
                         },
-                    ))
-                    .is_err()
-                {
-                    <span class="macro">re_log::warn_once!</span>(<span class="string">"Channel between ViewportBlueprint and Viewport is broken"</span>);
-                }
+                    ));
 
                 <span class="self">self</span>.edited = <span class="bool-val">true</span>;
             }
@@ -1836,7 +1798,7 @@
 
 <span class="kw">impl </span>TabWidget {
     <span class="kw">fn </span>new&lt;<span class="lifetime">'a</span>&gt;(
-        tab_viewer: <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>TabViewer&lt;<span class="lifetime">'_</span>, <span class="lifetime">'_</span>&gt;,
+        tab_viewer: <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>TilesDelegate&lt;<span class="lifetime">'_</span>, <span class="lifetime">'_</span>&gt;,
         ui: <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>egui::Ui,
         tiles: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>egui_tiles::Tiles&lt;SpaceViewId&gt;,
         tile_id: egui_tiles::TileId,
@@ -1852,9 +1814,7 @@
 
         <span class="kw">let </span>tab_desc = <span class="kw">match </span>tiles.get(tile_id) {
             <span class="prelude-val">Some</span>(egui_tiles::Tile::Pane(space_view_id)) =&gt; {
-                <span class="kw">if let </span><span class="prelude-val">Some</span>(space_view) =
-                    tab_viewer.viewport_blueprint.space_views.get(space_view_id)
-                {
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(space_view) = tab_viewer.viewport_blueprint.view(space_view_id) {
                     TabDesc {
                         label: tab_viewer.tab_title_for_pane(space_view_id),
                         user_named: space_view.display_name.is_some(),

@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"fn":["tree_simplification_options"],"struct":["TabViewer","TabWidget","Viewport"]};

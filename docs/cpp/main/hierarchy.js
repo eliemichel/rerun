@@ -146,7 +146,6 @@ var hierarchy =
     [ "rerun::datatypes::ImageFormat", "structrerun_1_1datatypes_1_1ImageFormat.html", null ],
     [ "rerun::components::ImagePlaneDistance", "structrerun_1_1components_1_1ImagePlaneDistance.html", null ],
     [ "rerun::blueprint::components::IncludedContent", "structrerun_1_1blueprint_1_1components_1_1IncludedContent.html", null ],
-    [ "rerun::blueprint::components::IncludedSpaceView", "structrerun_1_1blueprint_1_1components_1_1IncludedSpaceView.html", null ],
     [ "rerun::components::IndicatorComponent< Name >", "structrerun_1_1components_1_1IndicatorComponent.html", null ],
     [ "rerun::archetypes::InstancePoses3D", "structrerun_1_1archetypes_1_1InstancePoses3D.html", null ],
     [ "cxxopts::values::parser_tool::IntegerDesc", "structcxxopts_1_1values_1_1parser__tool_1_1IntegerDesc.html", null ],
